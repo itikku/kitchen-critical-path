@@ -1,0 +1,6 @@
+{"event_id": "user-correction-e00", "session_id": "user-correction", "t_start_s": 0, "task_id": "press_tofu", "status": "started", "source": "user"}
+{"event_id": "user-correction-e01", "session_id": "user-correction", "t_start_s": 0, "task_id": "cut_firm_veg", "status": "started", "source": "student", "source_version": "fixture", "confidence": 0.9}
+{"event_id": "user-correction-e02", "session_id": "user-correction", "t_start_s": 480, "task_id": "cut_firm_veg", "status": "complete", "source": "student", "source_version": "fixture", "confidence": 0.9}
+{"event_id": "user-correction-e03", "session_id": "user-correction", "t_start_s": 480, "task_id": "cut_leafy_veg", "status": "started", "source": "student", "source_version": "fixture", "confidence": 0.8}
+{"event_id": "user-correction-e04", "session_id": "user-correction", "t_start_s": 490, "task_id": "cut_tomato", "status": "started", "source": "user_correction", "corrects_event_id": "user-correction-e03"}
+{"event_id": "user-correction-e05", "session_id": "user-correction", "t_start_s": 610, "task_id": "cut_tomato", "status": "complete", "source": "student", "source_version": "fixture", "confidence": 0.9}

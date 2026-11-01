@@ -1,0 +1,116 @@
+Replay: Tofu-vegetable stir-fry with reheated frozen rice [tofu_stir_fry.frozen_rice.v0]
+
+[00:00] session start
+        next: Press the tofu — Start it now: it runs by itself for 20 min while you do other work.
+        hold: Cut the tomato — wait: start when 'plate the food' is ~25 min away (now ~43 min)
+        hold: Reheat the frozen rice — wait: start when 'plate the food' is ~4 min away (now ~43 min)
+        plate ≈ 45:00 · bottleneck: your hands (43 min of active work left)
+[00:00] started 'Press the tofu' (user)
+        next: Cut the firm vegetables (carrot, broccoli, Chinese broccoli stems, onion) — It is on the longest remaining path (29 min of work to the end).
+        hold: Cut the tomato — wait: start when 'plate the food' is ~25 min away (now ~43 min)
+        hold: Reheat the frozen rice — wait: start when 'plate the food' is ~4 min away (now ~43 min)
+        plate ≈ 45:00 · bottleneck: your hands (43 min of active work left)
+[00:00] started 'Cut the firm vegetables (carrot, broccoli, Chinese broccoli stems, onion)' (student, confidence 0.90)
+        next: Wash the greens (bok choy, Chinese broccoli leaves) — After 'cut the firm vegetables (carrot, broccoli, chinese broccoli stems, onion)': It is on the longest remaining path (28 min of work to the end).
+        hold: Cut the tomato — wait: start when 'plate the food' is ~25 min away (now ~43 min)
+        hold: Reheat the frozen rice — wait: start when 'plate the food' is ~4 min away (now ~43 min)
+        plate ≈ 45:00 · bottleneck: your hands (43 min of active work left)
+[08:00] complete 'Cut the firm vegetables (carrot, broccoli, Chinese broccoli stems, onion)' (student, confidence 0.90)
+        next: Wash the greens (bok choy, Chinese broccoli leaves) — It is on the longest remaining path (28 min of work to the end).
+        hold: Cut the tomato — wait: start when 'plate the food' is ~25 min away (now ~35 min)
+        hold: Reheat the frozen rice — wait: start when 'plate the food' is ~4 min away (now ~35 min)
+        plate ≈ 45:00 · bottleneck: your hands (35 min of active work left)
+[08:00] started 'Wash the greens (bok choy, Chinese broccoli leaves)' (user)
+        next: Cut the garlic — After 'wash the greens (bok choy, chinese broccoli leaves)': It is on the longest remaining path (25 min of work to the end).
+        hold: Cut the tomato — wait: start when 'plate the food' is ~25 min away (now ~35 min)
+        hold: Reheat the frozen rice — wait: start when 'plate the food' is ~4 min away (now ~35 min)
+        plate ≈ 45:00 · bottleneck: your hands (35 min of active work left)
+[11:00] complete 'Wash the greens (bok choy, Chinese broccoli leaves)' (user)
+        next: Cut the garlic — It is on the longest remaining path (25 min of work to the end).
+        hold: Cut the tomato — wait: start when 'plate the food' is ~25 min away (now ~32 min)
+        hold: Reheat the frozen rice — wait: start when 'plate the food' is ~4 min away (now ~32 min)
+        plate ≈ 45:00 · bottleneck: your hands (32 min of active work left)
+[11:00] started 'Cut the leafy vegetables' (student, confidence 0.90)
+        next: Cut the garlic — After 'cut the leafy vegetables': It is on the longest remaining path (25 min of work to the end).
+        hold: Cut the tomato — wait: start when 'plate the food' is ~25 min away (now ~32 min)
+        hold: Reheat the frozen rice — wait: start when 'plate the food' is ~4 min away (now ~32 min)
+        plate ≈ 45:00 · bottleneck: your hands (32 min of active work left)
+[15:00] complete 'Cut the leafy vegetables' (student, confidence 0.90)
+        next: Cut the garlic — It is on the longest remaining path (25 min of work to the end).
+        hold: Cut the tomato — wait: start when 'plate the food' is ~25 min away (now ~28 min)
+        hold: Reheat the frozen rice — wait: start when 'plate the food' is ~4 min away (now ~28 min)
+        plate ≈ 45:00 · bottleneck: your hands (28 min of active work left)
+[15:00] started 'Cut the garlic' (student, confidence 0.90)
+        next: Mix the sauce — After 'cut the garlic': It is on the longest remaining path (24 min of work to the end).
+        hold: Cut the tomato — wait: start when 'plate the food' is ~25 min away (now ~28 min)
+        hold: Reheat the frozen rice — wait: start when 'plate the food' is ~4 min away (now ~28 min)
+        plate ≈ 45:00 · bottleneck: your hands (28 min of active work left)
+[19:00] complete 'Cut the garlic' (student, confidence 0.90)
+        next: Mix the sauce — It is on the longest remaining path (24 min of work to the end).
+        hold: Reheat the frozen rice — wait: start when 'plate the food' is ~4 min away (now ~24 min)
+        plate ≈ 45:00 · bottleneck: your hands (24 min of active work left)
+[19:00] started 'Mix the sauce' (student, confidence 0.90)
+        next: Cut the tomato — After 'mix the sauce': It is on the longest remaining path (23 min of work to the end).
+        hold: Reheat the frozen rice — wait: start when 'plate the food' is ~4 min away (now ~24 min)
+        plate ≈ 45:00 · bottleneck: your hands (24 min of active work left)
+[22:00] complete 'Mix the sauce' (student, confidence 0.90)
+        next: Cube the tofu — It is on the longest remaining path (24 min of work to the end).
+        hold: Reheat the frozen rice — wait: start when 'plate the food' is ~4 min away (now ~22 min)
+        plate ≈ 46:00 · bottleneck: cube the tofu (3 min left)
+[22:00] started 'Cube the tofu' (student, confidence 0.90)
+        next: Cut the tomato — After 'cube the tofu': It is on the longest remaining path (23 min of work to the end).
+        hold: Reheat the frozen rice — wait: start when 'plate the food' is ~4 min away (now ~22 min)
+        plate ≈ 46:00 · bottleneck: cube the tofu (3 min left)
+[25:00] complete 'Cube the tofu' (student, confidence 0.90)
+        next: Cut the tomato — It is on the longest remaining path (23 min of work to the end).
+        hold: Reheat the frozen rice — wait: start when 'plate the food' is ~4 min away (now ~21 min)
+        plate ≈ 48:00 · bottleneck: cut the tomato (2 min left)
+[25:00] started 'Cut the tomato' (student, confidence 0.90)
+        next: — Keep going with 'cut the tomato'.
+        hold: Reheat the frozen rice — wait: start when 'plate the food' is ~4 min away (now ~21 min)
+        plate ≈ 48:00 · bottleneck: cut the tomato (2 min left)
+[27:00] complete 'Cut the tomato' (student, confidence 0.90)
+        next: Heat the wok — Start it now: it runs by itself for 3 min while you do other work.
+        hold: Reheat the frozen rice — wait: start when 'plate the food' is ~4 min away (now ~19 min)
+        plate ≈ 48:00 · bottleneck: heat the wok (3 min left)
+[27:00] started 'Heat the wok' (user)
+        next: — Wait for 'heat the wok'.
+        hold: Reheat the frozen rice — wait: start when 'plate the food' is ~4 min away (now ~19 min)
+        plate ≈ 48:00 · bottleneck: heat the wok (3 min left)
+[30:00] started 'Sear the tofu' (user)
+        next: — Keep going with 'sear the tofu'.
+        hold: Reheat the frozen rice — wait: start when 'plate the food' is ~4 min away (now ~16 min)
+        plate ≈ 48:00 · bottleneck: your hands (16 min of active work left)
+[36:00] complete 'Sear the tofu' (user)
+        next: Stir-fry the garlic and firm vegetables — It is on the longest remaining path (12 min of work to the end).
+        hold: Reheat the frozen rice — wait: start when 'plate the food' is ~4 min away (now ~10 min)
+        plate ≈ 48:00 · bottleneck: your hands (10 min of active work left)
+[36:00] started 'Stir-fry the garlic and firm vegetables' (user)
+        next: — Keep going with 'stir-fry the garlic and firm vegetables'.
+        hold: Reheat the frozen rice — wait: start when 'plate the food' is ~4 min away (now ~10 min)
+        plate ≈ 48:00 · bottleneck: your hands (10 min of active work left)
+[41:00] complete 'Stir-fry the garlic and firm vegetables' (user)
+        next: Stir-fry the leafy vegetables and tomato — It is on the longest remaining path (7 min of work to the end).
+        hold: Reheat the frozen rice — wait: start when 'plate the food' is ~4 min away (now ~5 min)
+        plate ≈ 48:00 · bottleneck: your hands (5 min of active work left)
+[41:00] started 'Stir-fry the leafy vegetables and tomato' (user)
+        next: — Keep going with 'stir-fry the leafy vegetables and tomato'.
+        hold: Reheat the frozen rice — wait: start when 'plate the food' is ~4 min away (now ~5 min)
+        plate ≈ 48:00 · bottleneck: your hands (5 min of active work left)
+[44:00] complete 'Stir-fry the leafy vegetables and tomato' (user)
+        next: Reheat the frozen rice — Start it now: it runs by itself for 3 min while you do other work.
+        plate ≈ 49:00 · bottleneck: reheat the frozen rice (3 min left)
+[44:00] started 'Reheat the frozen rice' (user)
+        next: Combine and add the sauce — It is on the longest remaining path (4 min of work to the end).
+        plate ≈ 49:00 · bottleneck: reheat the frozen rice (3 min left)
+[44:00] started 'Combine and add the sauce' (user)
+        next: — Keep going with 'combine and add the sauce'.
+        plate ≈ 49:00 · bottleneck: reheat the frozen rice (3 min left)
+[46:00] complete 'Combine and add the sauce' (user)
+        next: — Wait for 'reheat the frozen rice'.
+        plate ≈ 49:00 · bottleneck: reheat the frozen rice (1 min left)
+[47:00] started 'Plate the food' (user)
+        next: — Keep going with 'plate the food'.
+        plate ≈ 49:00 · bottleneck: your hands (0 min of active work left)
+[49:00] complete 'Plate the food' (user)
+        next: — Done. Enjoy the meal.

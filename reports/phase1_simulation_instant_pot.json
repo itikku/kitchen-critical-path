@@ -1,0 +1,19 @@
+{
+  "graph_id": "tofu_stir_fry.instant_pot.v0",
+  "sessions": 200,
+  "seed": 0,
+  "scheduler": {
+    "mean_total_min": 57.17298085318279,
+    "p90_total_min": 64.50025888248958,
+    "mean_idle_min": 3.126666666666667,
+    "sessions_with_window_miss": 0.345
+  },
+  "recipe_order": {
+    "mean_total_min": 57.063814186516126,
+    "p90_total_min": 64.50025888248958,
+    "mean_idle_min": 3.0175,
+    "sessions_with_window_miss": 0.775
+  },
+  "mean_saving_min": -0.10916666666666705,
+  "scheduler_not_slower": 0.91
+}

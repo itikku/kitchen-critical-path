@@ -1,0 +1,188 @@
+{
+  "graph_id": "tofu_stir_fry.instant_pot.v0",
+  "display_name": "Tofu-vegetable stir-fry with Instant Pot rice",
+  "final_task": "plate",
+  "recipe_order": [
+    "rinse_rice",
+    "cook_rice_instant_pot",
+    "press_tofu",
+    "mix_sauce",
+    "cut_aromatics",
+    "cut_firm_veg",
+    "wash_greens",
+    "cut_leafy_veg",
+    "cut_tomato",
+    "cube_tofu",
+    "heat_wok",
+    "sear_tofu",
+    "stir_fry_firm",
+    "stir_fry_leafy",
+    "combine_and_sauce",
+    "plate"
+  ],
+  "tasks": [
+    {
+      "task_id": "rinse_rice",
+      "display_name": "Rinse the rice",
+      "requires": [],
+      "duration_s": 120,
+      "attention": "active",
+      "observed_by": "user"
+    },
+    {
+      "task_id": "cook_rice_instant_pot",
+      "display_name": "Cook the rice in the Instant Pot",
+      "requires": [
+        "rinse_rice"
+      ],
+      "duration_s": 1800,
+      "attention": "passive",
+      "observed_by": "user",
+      "window": {
+        "anchor": "plate",
+        "max_lead_s": 3000,
+        "rationale": "The Instant Pot keeps rice warm; finish within 20 min of plating (start within 50). Heuristic."
+      }
+    },
+    {
+      "task_id": "press_tofu",
+      "display_name": "Press the tofu",
+      "requires": [],
+      "duration_s": 1200,
+      "attention": "passive",
+      "observed_by": "user"
+    },
+    {
+      "task_id": "mix_sauce",
+      "display_name": "Mix the sauce",
+      "requires": [],
+      "duration_s": 180,
+      "attention": "active",
+      "observed_by": "camera"
+    },
+    {
+      "task_id": "cut_aromatics",
+      "display_name": "Cut the garlic",
+      "requires": [],
+      "duration_s": 240,
+      "attention": "active",
+      "observed_by": "camera"
+    },
+    {
+      "task_id": "cut_firm_veg",
+      "display_name": "Cut the firm vegetables (carrot, broccoli, Chinese broccoli stems, onion)",
+      "requires": [],
+      "duration_s": 480,
+      "attention": "active",
+      "observed_by": "camera"
+    },
+    {
+      "task_id": "wash_greens",
+      "display_name": "Wash the greens (bok choy, Chinese broccoli leaves)",
+      "requires": [],
+      "duration_s": 180,
+      "attention": "active",
+      "observed_by": "user"
+    },
+    {
+      "task_id": "cut_leafy_veg",
+      "display_name": "Cut the leafy vegetables",
+      "requires": [
+        "wash_greens"
+      ],
+      "duration_s": 240,
+      "attention": "active",
+      "observed_by": "camera"
+    },
+    {
+      "task_id": "cut_tomato",
+      "display_name": "Cut the tomato",
+      "requires": [],
+      "duration_s": 120,
+      "attention": "active",
+      "observed_by": "camera",
+      "window": {
+        "anchor": "plate",
+        "max_lead_s": 1500,
+        "rationale": "Cut tomato releases juice; cut it within 25 min of plating. Heuristic."
+      }
+    },
+    {
+      "task_id": "cube_tofu",
+      "display_name": "Cube the tofu",
+      "requires": [
+        "press_tofu"
+      ],
+      "duration_s": 180,
+      "attention": "active",
+      "observed_by": "camera"
+    },
+    {
+      "task_id": "heat_wok",
+      "display_name": "Heat the wok",
+      "requires": [
+        "mix_sauce",
+        "cut_aromatics",
+        "cut_firm_veg",
+        "cut_leafy_veg",
+        "cut_tomato",
+        "cube_tofu"
+      ],
+      "duration_s": 180,
+      "attention": "passive",
+      "observed_by": "user"
+    },
+    {
+      "task_id": "sear_tofu",
+      "display_name": "Sear the tofu",
+      "requires": [
+        "heat_wok"
+      ],
+      "duration_s": 360,
+      "attention": "active",
+      "observed_by": "user"
+    },
+    {
+      "task_id": "stir_fry_firm",
+      "display_name": "Stir-fry the garlic and firm vegetables",
+      "requires": [
+        "sear_tofu"
+      ],
+      "duration_s": 300,
+      "attention": "active",
+      "observed_by": "user"
+    },
+    {
+      "task_id": "stir_fry_leafy",
+      "display_name": "Stir-fry the leafy vegetables and tomato",
+      "requires": [
+        "stir_fry_firm"
+      ],
+      "duration_s": 180,
+      "attention": "active",
+      "observed_by": "user"
+    },
+    {
+      "task_id": "combine_and_sauce",
+      "display_name": "Combine and add the sauce",
+      "requires": [
+        "stir_fry_leafy"
+      ],
+      "duration_s": 120,
+      "attention": "active",
+      "observed_by": "user"
+    },
+    {
+      "task_id": "plate",
+      "display_name": "Plate the food",
+      "requires": [
+        "combine_and_sauce",
+        "cook_rice_instant_pot"
+      ],
+      "duration_s": 120,
+      "attention": "active",
+      "observed_by": "user"
+    }
+  ],
+  "note": "Durations and windows are authored heuristics (IMPLEMENTATION_PLAN.md). recipe_order is the order a typical written recipe lists the steps."
+}

@@ -1,0 +1,19 @@
+{
+  "graph_id": "tofu_stir_fry.frozen_rice.v0",
+  "sessions": 200,
+  "seed": 0,
+  "scheduler": {
+    "mean_total_min": 55.74487090917062,
+    "p90_total_min": 63.595472725376176,
+    "mean_idle_min": 3.915833333333333,
+    "sessions_with_window_miss": 0.465
+  },
+  "recipe_order": {
+    "mean_total_min": 57.83320424250395,
+    "p90_total_min": 65.73989361571545,
+    "mean_idle_min": 6.004166666666666,
+    "sessions_with_window_miss": 0.955
+  },
+  "mean_saving_min": 2.0883333333333334,
+  "scheduler_not_slower": 1.0
+}

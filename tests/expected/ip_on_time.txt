@@ -1,0 +1,111 @@
+Replay: Tofu-vegetable stir-fry with Instant Pot rice [tofu_stir_fry.instant_pot.v0]
+
+[00:00] session start
+        next: Press the tofu — Start it now: it runs by itself for 20 min while you do other work.
+        hold: Cut the tomato — wait: start when 'plate the food' is ~25 min away (now ~45 min)
+        plate ≈ 47:00 · bottleneck: your hands (45 min of active work left)
+[00:00] started 'Press the tofu' (user)
+        next: Rinse the rice — It is on the longest remaining path (34 min of work to the end).
+        hold: Cut the tomato — wait: start when 'plate the food' is ~25 min away (now ~45 min)
+        plate ≈ 47:00 · bottleneck: your hands (45 min of active work left)
+[00:00] started 'Rinse the rice' (user)
+        next: Cut the firm vegetables (carrot, broccoli, Chinese broccoli stems, onion) — After 'rinse the rice': It is on the longest remaining path (29 min of work to the end).
+        hold: Cut the tomato — wait: start when 'plate the food' is ~25 min away (now ~45 min)
+        plate ≈ 47:00 · bottleneck: your hands (45 min of active work left)
+[02:00] complete 'Rinse the rice' (user)
+        next: Cut the firm vegetables (carrot, broccoli, Chinese broccoli stems, onion) — It is on the longest remaining path (29 min of work to the end).
+        hold: Cook the rice in the Instant Pot — wait: start when 'plate the food' is ~31 min away (now ~43 min)
+        hold: Cut the tomato — wait: start when 'plate the food' is ~25 min away (now ~43 min)
+        plate ≈ 47:00 · bottleneck: your hands (43 min of active work left)
+[02:00] started 'Cut the firm vegetables (carrot, broccoli, Chinese broccoli stems, onion)' (student, confidence 0.90)
+        next: Wash the greens (bok choy, Chinese broccoli leaves) — After 'cut the firm vegetables (carrot, broccoli, chinese broccoli stems, onion)': It is on the longest remaining path (28 min of work to the end).
+        hold: Cook the rice in the Instant Pot — wait: start when 'plate the food' is ~31 min away (now ~43 min)
+        hold: Cut the tomato — wait: start when 'plate the food' is ~25 min away (now ~43 min)
+        plate ≈ 47:00 · bottleneck: your hands (43 min of active work left)
+[10:00] complete 'Cut the firm vegetables (carrot, broccoli, Chinese broccoli stems, onion)' (student, confidence 0.90)
+        next: Wash the greens (bok choy, Chinese broccoli leaves) — It is on the longest remaining path (28 min of work to the end).
+        hold: Cook the rice in the Instant Pot — wait: start when 'plate the food' is ~31 min away (now ~35 min)
+        hold: Cut the tomato — wait: start when 'plate the food' is ~25 min away (now ~35 min)
+        plate ≈ 47:00 · bottleneck: your hands (35 min of active work left)
+[10:00] started 'Wash the greens (bok choy, Chinese broccoli leaves)' (user)
+        next: Cut the garlic — After 'wash the greens (bok choy, chinese broccoli leaves)': It is on the longest remaining path (25 min of work to the end).
+        hold: Cook the rice in the Instant Pot — wait: start when 'plate the food' is ~31 min away (now ~35 min)
+        hold: Cut the tomato — wait: start when 'plate the food' is ~25 min away (now ~35 min)
+        plate ≈ 47:00 · bottleneck: your hands (35 min of active work left)
+[13:00] complete 'Wash the greens (bok choy, Chinese broccoli leaves)' (user)
+        next: Cut the garlic — It is on the longest remaining path (25 min of work to the end).
+        hold: Cook the rice in the Instant Pot — wait: start when 'plate the food' is ~31 min away (now ~32 min)
+        hold: Cut the tomato — wait: start when 'plate the food' is ~25 min away (now ~32 min)
+        plate ≈ 47:00 · bottleneck: your hands (32 min of active work left)
+[13:00] started 'Cut the leafy vegetables' (student, confidence 0.90)
+        next: Cut the garlic — After 'cut the leafy vegetables': It is on the longest remaining path (25 min of work to the end).
+        hold: Cook the rice in the Instant Pot — wait: start when 'plate the food' is ~31 min away (now ~32 min)
+        hold: Cut the tomato — wait: start when 'plate the food' is ~25 min away (now ~32 min)
+        plate ≈ 47:00 · bottleneck: your hands (32 min of active work left)
+[17:00] complete 'Cut the leafy vegetables' (student, confidence 0.90)
+        next: Cook the rice in the Instant Pot — Start it now: it runs by itself for 30 min while you do other work.
+        hold: Cut the tomato — wait: start when 'plate the food' is ~25 min away (now ~30 min)
+        plate ≈ 49:00 · bottleneck: cook the rice in the instant pot (30 min left)
+[17:00] started 'Cut the garlic' (student, confidence 0.90)
+        next: Cook the rice in the Instant Pot — Start it now: it runs by itself for 30 min while you do other work.
+        hold: Cut the tomato — wait: start when 'plate the food' is ~25 min away (now ~30 min)
+        plate ≈ 49:00 · bottleneck: cook the rice in the instant pot (30 min left)
+[17:00] started 'Cook the rice in the Instant Pot' (user)
+        next: Mix the sauce — After 'cut the garlic': It is on the longest remaining path (24 min of work to the end).
+        hold: Cut the tomato — wait: start when 'plate the food' is ~25 min away (now ~30 min)
+        plate ≈ 49:00 · bottleneck: cook the rice in the instant pot (30 min left)
+[21:00] complete 'Cut the garlic' (student, confidence 0.90)
+        next: Mix the sauce — It is on the longest remaining path (24 min of work to the end).
+        hold: Cut the tomato — wait: start when 'plate the food' is ~25 min away (now ~26 min)
+        plate ≈ 49:00 · bottleneck: cook the rice in the instant pot (26 min left)
+[21:00] started 'Mix the sauce' (student, confidence 0.90)
+        next: Cube the tofu — After 'mix the sauce': It is on the longest remaining path (24 min of work to the end).
+        hold: Cut the tomato — wait: start when 'plate the food' is ~25 min away (now ~26 min)
+        plate ≈ 49:00 · bottleneck: cook the rice in the instant pot (26 min left)
+[24:00] complete 'Mix the sauce' (student, confidence 0.90)
+        next: Cube the tofu — It is on the longest remaining path (24 min of work to the end).
+        plate ≈ 49:00 · bottleneck: cook the rice in the instant pot (23 min left)
+[24:00] started 'Cube the tofu' (student, confidence 0.90)
+        next: Cut the tomato — After 'cube the tofu': It is on the longest remaining path (23 min of work to the end).
+        plate ≈ 49:00 · bottleneck: cook the rice in the instant pot (23 min left)
+[27:00] complete 'Cube the tofu' (student, confidence 0.90)
+        next: Cut the tomato — It is on the longest remaining path (23 min of work to the end).
+        plate ≈ 50:00 · bottleneck: cut the tomato (2 min left)
+[27:00] started 'Cut the tomato' (student, confidence 0.90)
+        next: — Keep going with 'cut the tomato'.
+        plate ≈ 50:00 · bottleneck: cut the tomato (2 min left)
+[29:00] complete 'Cut the tomato' (student, confidence 0.90)
+        next: Heat the wok — Start it now: it runs by itself for 3 min while you do other work.
+        plate ≈ 50:00 · bottleneck: heat the wok (3 min left)
+[29:00] started 'Heat the wok' (user)
+        next: — Wait for 'cook the rice in the instant pot'.
+        plate ≈ 50:00 · bottleneck: heat the wok (3 min left)
+[32:00] started 'Sear the tofu' (user)
+        next: — Keep going with 'sear the tofu'.
+        plate ≈ 50:00 · bottleneck: your hands (16 min of active work left)
+[38:00] complete 'Sear the tofu' (user)
+        next: Stir-fry the garlic and firm vegetables — It is on the longest remaining path (12 min of work to the end).
+        plate ≈ 50:00 · bottleneck: your hands (10 min of active work left)
+[38:00] started 'Stir-fry the garlic and firm vegetables' (user)
+        next: — Keep going with 'stir-fry the garlic and firm vegetables'.
+        plate ≈ 50:00 · bottleneck: your hands (10 min of active work left)
+[43:00] complete 'Stir-fry the garlic and firm vegetables' (user)
+        next: Stir-fry the leafy vegetables and tomato — It is on the longest remaining path (7 min of work to the end).
+        plate ≈ 50:00 · bottleneck: your hands (5 min of active work left)
+[43:00] started 'Stir-fry the leafy vegetables and tomato' (user)
+        next: — Keep going with 'stir-fry the leafy vegetables and tomato'.
+        plate ≈ 50:00 · bottleneck: your hands (5 min of active work left)
+[46:00] complete 'Stir-fry the leafy vegetables and tomato' (user)
+        next: Combine and add the sauce — It is on the longest remaining path (4 min of work to the end).
+        plate ≈ 50:00 · bottleneck: your hands (2 min of active work left)
+[46:00] started 'Combine and add the sauce' (user)
+        next: — Keep going with 'combine and add the sauce'.
+        plate ≈ 50:00 · bottleneck: your hands (2 min of active work left)
+[48:00] complete 'Combine and add the sauce' (user)
+        next: Plate the food — It is on the longest remaining path (2 min of work to the end).
+        plate ≈ 50:00 · bottleneck: your hands (0 min of active work left)
+[48:00] started 'Plate the food' (user)
+        next: — Keep going with 'plate the food'.
+        plate ≈ 50:00 · bottleneck: your hands (0 min of active work left)
+[50:00] complete 'Plate the food' (user)
+        next: — Done. Enjoy the meal.

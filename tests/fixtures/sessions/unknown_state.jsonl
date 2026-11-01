@@ -1,0 +1,4 @@
+{"event_id": "unknown-state-e00", "session_id": "unknown-state", "t_start_s": 0, "task_id": "press_tofu", "status": "started", "source": "user"}
+{"event_id": "unknown-state-e01", "session_id": "unknown-state", "t_start_s": 0, "task_id": "cut_firm_veg", "status": "started", "source": "student", "source_version": "fixture", "confidence": 0.9}
+{"event_id": "unknown-state-e02", "session_id": "unknown-state", "t_start_s": 480, "task_id": "cut_firm_veg", "status": "complete", "source": "student", "source_version": "fixture", "confidence": 0.45}
+{"event_id": "unknown-state-e03", "session_id": "unknown-state", "t_start_s": 500, "task_id": "cut_firm_veg", "status": "complete", "source": "user"}

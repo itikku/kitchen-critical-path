@@ -1,0 +1,10 @@
+Simulation: tofu_stir_fry.frozen_rice.v0 — 200 sessions, seed 0
+policy          mean total  p90 total  idle hands  window miss
+scheduler          55.7 min    63.6 min      3.9 min         46%
+recipe order       57.8 min    65.7 min      6.0 min         96%
+paired saving: 2.1 min per session; scheduler not slower in 100% of sessions
+Simulation: tofu_stir_fry.instant_pot.v0 — 200 sessions, seed 0
+policy          mean total  p90 total  idle hands  window miss
+scheduler          57.2 min    64.5 min      3.1 min         34%
+recipe order       57.1 min    64.5 min      3.0 min         78%
+paired saving: -0.1 min per session; scheduler not slower in 91% of sessions

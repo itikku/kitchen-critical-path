@@ -1,0 +1,8 @@
+{"event_id": "early-wok-e00", "session_id": "early-wok", "t_start_s": 0, "task_id": "press_tofu", "status": "started", "source": "user"}
+{"event_id": "early-wok-e01", "session_id": "early-wok", "t_start_s": 0, "task_id": "cut_firm_veg", "status": "started", "source": "student", "source_version": "fixture", "confidence": 0.9}
+{"event_id": "early-wok-e02", "session_id": "early-wok", "t_start_s": 480, "task_id": "cut_firm_veg", "status": "complete", "source": "student", "source_version": "fixture", "confidence": 0.9}
+{"event_id": "early-wok-e03", "session_id": "early-wok", "t_start_s": 480, "task_id": "wash_greens", "status": "started", "source": "user"}
+{"event_id": "early-wok-e04", "session_id": "early-wok", "t_start_s": 660, "task_id": "wash_greens", "status": "complete", "source": "user"}
+{"event_id": "early-wok-e05", "session_id": "early-wok", "t_start_s": 660, "task_id": "cut_leafy_veg", "status": "started", "source": "student", "source_version": "fixture", "confidence": 0.9}
+{"event_id": "early-wok-e06", "session_id": "early-wok", "t_start_s": 900, "task_id": "cut_leafy_veg", "status": "complete", "source": "student", "source_version": "fixture", "confidence": 0.9}
+{"event_id": "early-wok-e07", "session_id": "early-wok", "t_start_s": 900, "task_id": "heat_wok", "status": "started", "source": "user"}
