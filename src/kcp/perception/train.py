@@ -19,11 +19,16 @@ import torch.nn as nn
 from sklearn.metrics import f1_score
 
 from kcp.perception.data import Split, Video, assign_split
-from kcp.perception.embed import ENCODER
 from kcp.perception.labels import CLASSES
 
 WINDOW = 8
 SEED = 0
+# Feature set -> cache folder. Run 2 used mnv3_full; Phase 2a.2 adds the two cropped sets.
+FEATURE_DIRS = {
+    "mnv3_full": "mobilenetv3_large_100",
+    "mnv3_crop": "mnv3_crop",
+    "s3d_crop": "s3d_crop",
+}
 
 
 @dataclass(frozen=True)
@@ -37,10 +42,12 @@ class TrainConfig:
     dropout: float = 0.2
     class_weight_power: float = 0.5  # weight = (1 / class frequency) ** power, mean-normalized
     center: bool = False  # subtract each video's running-mean embedding (causal; works live)
+    features: str = "mnv3_full"
 
     @property
     def name(self) -> str:
-        return self.model + ("_centered" if self.center else "")
+        base = self.model + ("_centered" if self.center else "")
+        return base if self.features == "mnv3_full" else f"{self.features}__{base}"
 
 
 # Run 2 configurations, fixed before any run-2 result was seen. The temporal head gets stronger
@@ -52,6 +59,19 @@ CONFIGS: tuple[TrainConfig, ...] = (
     TrainConfig(model="temporal_head", dropout=0.5, weight_decay=0.05, center=True),
 )
 
+# Phase 2a.2 configurations (IMPLEMENTATION_PLAN.md), fixed before any 2a.2 result: for each
+# feature set, the frame baseline and run 2's selected configuration.
+CONFIGS_2A2: tuple[TrainConfig, ...] = tuple(
+    cfg
+    for features in FEATURE_DIRS
+    for cfg in (
+        TrainConfig(model="frame_linear", features=features),
+        TrainConfig(
+            model="temporal_head", dropout=0.5, weight_decay=0.05, center=True, features=features
+        ),
+    )
+)
+
 
 @dataclass
 class SplitData:
@@ -60,6 +80,7 @@ class SplitData:
     video_start: np.ndarray  # (N,) first global index of the frame's video
     video_end: np.ndarray  # (N,) last global index of the frame's video
     keys: list[str]
+    frame: np.ndarray  # (N,) source video frame index of each step (15 fps)
 
 
 def video_of(key: str) -> Video:
@@ -67,12 +88,12 @@ def video_of(key: str) -> Video:
     return Video(path=Path(key), person=person, camera=camera, recipe=recipe)
 
 
-def load_split(cache_dir: Path, split: Split) -> SplitData:
-    files = sorted((cache_dir / ENCODER).glob("*.npz"))
+def load_split(cache_dir: Path, split: Split, features: str = "mnv3_full") -> SplitData:
+    files = sorted((cache_dir / FEATURE_DIRS[features]).glob("*.npz"))
     files = [
         f for f in files if not f.stem.endswith(".tmp") and assign_split(video_of(f.stem)) == split
     ]
-    embs, ys, starts, ends, keys = [], [], [], [], []
+    embs, ys, starts, ends, keys, frames = [], [], [], [], [], []
     offset = 0
     for f in files:
         d = np.load(f)
@@ -84,6 +105,7 @@ def load_split(cache_dir: Path, split: Split) -> SplitData:
         starts.append(np.full(n, offset))
         ends.append(np.full(n, offset + n - 1))
         keys.append(f.stem)
+        frames.append(d["frame"].astype(np.int64))
         offset += n
     return SplitData(
         emb=np.concatenate(embs),
@@ -91,20 +113,33 @@ def load_split(cache_dir: Path, split: Split) -> SplitData:
         video_start=np.concatenate(starts),
         video_end=np.concatenate(ends),
         keys=keys,
+        frame=np.concatenate(frames),
     )
 
 
 def centered(data: SplitData) -> SplitData:
     """Subtract, from each frame, the mean embedding of its video up to and including that frame.
     This removes most of the kitchen's static appearance and keeps what changes."""
-    emb = data.emb.astype(np.float32)
-    out = np.empty_like(emb)
+    out = np.empty_like(data.emb)  # float16; only one video at a time is held in float32
     for start in np.unique(data.video_start):
         end = int(data.video_end[start]) + 1
-        seg = emb[start:end]
+        seg = data.emb[start:end].astype(np.float32)
         running = np.cumsum(seg, axis=0) / np.arange(1, len(seg) + 1)[:, None]
         out[start:end] = seg - running
-    return SplitData(out.astype(np.float16), data.y, data.video_start, data.video_end, data.keys)
+    return SplitData(out, data.y, data.video_start, data.video_end, data.keys, data.frame)
+
+
+def feature_stats(emb: np.ndarray, chunk: int = 50_000) -> tuple[np.ndarray, np.ndarray]:
+    """Per-dimension mean and std, computed in chunks to keep memory low."""
+    total = np.zeros(emb.shape[1])
+    total_sq = np.zeros(emb.shape[1])
+    for i in range(0, len(emb), chunk):
+        part = emb[i : i + chunk].astype(np.float64)
+        total += part.sum(0)
+        total_sq += (part**2).sum(0)
+    mean = total / len(emb)
+    std = np.sqrt(np.maximum(total_sq / len(emb) - mean**2, 0)) + 1e-6
+    return mean.astype(np.float32), std.astype(np.float32)
 
 
 def prepare(data: SplitData, cfg: TrainConfig) -> SplitData:
@@ -183,15 +218,24 @@ def build_model(cfg: TrainConfig, dim: int) -> nn.Module:
     return MODELS[cfg.model](dim, len(CLASSES), cfg)
 
 
-def predict(model: nn.Module, data: SplitData, mean: np.ndarray, std: np.ndarray) -> np.ndarray:
+def predict_proba(
+    model: nn.Module, data: SplitData, mean: np.ndarray, std: np.ndarray
+) -> np.ndarray:
+    """(N, classes) softmax probabilities."""
     ds = to_device(data, mean, std)
     model.eval()
-    preds = []
+    probs = []
     with torch.inference_mode():
         for start in range(0, len(data.y), 4096):
             idx = torch.arange(start, min(start + 4096, len(data.y)), device=ds.emb.device)
-            preds.append(model(windows(ds, idx)).argmax(1))
-    return torch.cat(preds).cpu().numpy()
+            probs.append(model(windows(ds, idx)).softmax(1))
+    out: np.ndarray = torch.cat(probs).cpu().numpy()
+    return out
+
+
+def predict(model: nn.Module, data: SplitData, mean: np.ndarray, std: np.ndarray) -> np.ndarray:
+    out: np.ndarray = predict_proba(model, data, mean, std).argmax(1)
+    return out
 
 
 def macro_f1(y: np.ndarray, pred: np.ndarray) -> float:
@@ -205,8 +249,7 @@ def train_one(cfg: TrainConfig, train: SplitData, val: SplitData, out_dir: Path)
     torch.manual_seed(SEED)
     dev = device()
     dim = train.emb.shape[1]
-    mean = train.emb.astype(np.float32).mean(0)
-    std = train.emb.astype(np.float32).std(0) + 1e-6
+    mean, std = feature_stats(train.emb)
     freq = np.bincount(train.y, minlength=len(CLASSES)) / len(train.y)
     weight = (1.0 / np.maximum(freq, 1e-6)) ** cfg.class_weight_power
     weight = weight / weight.mean()
@@ -254,7 +297,7 @@ def train_one(cfg: TrainConfig, train: SplitData, val: SplitData, out_dir: Path)
     params = sum(p.numel() for p in model.parameters())
     meta = {
         "config": asdict(cfg),
-        "encoder": ENCODER,
+        "features": cfg.features,
         "window": WINDOW,
         "seed": SEED,
         "parameters": params,
@@ -279,12 +322,14 @@ def load_model(run_dir: Path) -> tuple[nn.Module, TrainConfig, np.ndarray, np.nd
     return model.to(device()), cfg, ckpt["mean"], ckpt["std"]
 
 
-def train_all(cache_dir: Path, runs_dir: Path) -> None:
-    train, val = load_split(cache_dir, "train"), load_split(cache_dir, "val")
-    print(
-        f"train: {len(train.keys)} videos, {len(train.y)} frames; "
-        f"val: {len(val.keys)} videos, {len(val.y)} frames",
-        flush=True,
-    )
-    for cfg in CONFIGS:
-        train_one(cfg, train, val, runs_dir / cfg.name)
+def train_all(cache_dir: Path, runs_dir: Path, configs: tuple[TrainConfig, ...] = CONFIGS) -> None:
+    for features in dict.fromkeys(cfg.features for cfg in configs):
+        train = load_split(cache_dir, "train", features)
+        val = load_split(cache_dir, "val", features)
+        print(
+            f"[{features}] train: {len(train.keys)} videos, {len(train.y)} steps; "
+            f"val: {len(val.keys)} videos, {len(val.y)} steps",
+            flush=True,
+        )
+        for cfg in (c for c in configs if c.features == features):
+            train_one(cfg, train, val, runs_dir / cfg.name)

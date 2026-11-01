@@ -11,3 +11,5 @@ __pycache__/
 .ruff_cache/
 data/runs/
 data/runs_run1/
+data/runs_2a2/
+data/edge/

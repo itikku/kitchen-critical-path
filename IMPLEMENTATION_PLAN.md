@@ -339,6 +339,34 @@ Fine-tuning the encoder itself (instead of freezing it) is much slower and is no
 - **Heat and use:** run the embedding step overnight or while the Mac is not in use, at low priority (`nice`). Save the cache in chunks, so a stop loses at most one chunk.
 - **Cloud:** not needed for Phase 2a. Reconsider only if the measured real-data speed is more than 3× slower than this benchmark. Any cloud use needs a separate cost and access request.
 
+## Phase 2a.2 — Better perception (approved 2026-11-01)
+
+**Goal:** raise the planner-relevant accuracy (above all `cut`) without changing the test sets. Every choice below is fixed before the first 2a.2 result.
+
+**Two changes, tested separately and together:**
+1. **Crop to the work area.** For each video, find where motion happens (sum of frame differences on a small grayscale copy), and crop a square around it. No labels are used, so this is allowed on test videos. On the Jetson, the camera is framed on the prep zone at setup, so no crop is needed there.
+2. **A motion-aware encoder:** S3D, pretrained on Kinetics-400 (8.3M parameters; measured ~17 clips/s on the M1 at 16×224×224). We use 8-frame clips (frame stride 2, ~1.07 s) at 224×224, one clip every **32** video frames (~2.1 s), and take the 1024-dim pooled features. (Changed from every 16 frames before any run: S3D measured ~19.5 clips/s at any batch size, so every 16 frames would take ~2.5 h.)
+
+**Feature sets:** `mnv3_full` (existing), `mnv3_crop`, `s3d_crop`, all on **exactly the run-2 videos and labels**, so only the features differ. Decoding streams each video from the archive in memory; no video is extracted to disk.
+
+**Configurations:** for each feature set, `frame_linear` and `temporal_head_centered` (run-2 settings). Selection: best validation macro-F1. T1 and T2 are evaluated once, after selection.
+
+**Planner-level metrics (new; reported for the selected model and the run-2 model):**
+- Binary average precision for **cutting** (`cut`) and **mixing** (`pour` or `stir`), from the model's class probabilities.
+- **Event-level F1 for cutting runs:** smooth the per-step cut probability with a moving average, threshold it, and keep runs of ≥ 20 s. A predicted run matches a true run when their overlap (IoU) is ≥ 0.25. The smoothing width and threshold are chosen on validation only.
+
+**Acceptance:** one command per step; results in `reports/phase2a2.md`; run 2 stays the comparison point; failures reported.
+
+## Phase 2b — Edge pipeline (approved 2026-11-01)
+
+**On the Mac now:**
+1. **Streaming perception:** frames in → encoder → rolling window → causal centering → head → smoothed action events (`ActionEvent`). The same code runs offline on a video file and live on a camera.
+2. **Action → task interpreter:** the rule in `docs/label_mapping.md` (credit actions to the recommended task; ask "Done with <task>?"). Unit tests with synthetic action streams.
+3. **ONNX export** of the encoder and the head, with a parity test (ONNX output = PyTorch output within tolerance).
+4. **Jetson benchmark script:** p50/p95 latency, throughput, and memory with ONNX Runtime and TensorRT.
+
+**On the Jetson (after setup):** run the benchmark and the streaming pipeline on a Breakfast video with the network off. Record the results in `reports/phase2b.md`.
+
 ## Voice input design (Phase 2b/3 — not built in Phases 0–2a)
 
 - **Fixed command list, not open conversation:** "yes", "no", "rice started", "tofu pressing", "greens washed", "wok on", "done", "what's next?", and "no, I'm cutting <task>". A small fixed list is more reliable in a noisy kitchen than free speech, and it needs no language model.

@@ -6,7 +6,8 @@ Rules (IMPLEMENTATION_PLAN.md, "Scheduling rules"):
 3. Start eligible passive tasks first.
 4. Defer a task whose quality window has not opened yet.
 5. Rank the remaining active tasks by the longest remaining path to the final task.
-6. If a task's state is unknown, ask the cook to confirm it before relying on it.
+6. If a task's state is unknown, ask the cook to confirm it before relying on it. A completion
+   reported with low confidence makes the state unknown; a low-confidence start is accepted.
 """
 
 from __future__ import annotations
@@ -67,7 +68,7 @@ def _auto_complete(graph: TaskGraph, state: SessionState, now: float) -> None:
 def _apply(graph: TaskGraph, state: SessionState, e: Event) -> None:
     task = graph.task(e.task_id)
     ts = state.tasks[e.task_id]
-    if e.confidence is not None and e.confidence < LOW_CONFIDENCE and e.status != "unknown":
+    if e.confidence is not None and e.confidence < LOW_CONFIDENCE and e.status == "complete":
         ts.status = "unknown"
         return
     if e.status == "unknown":
