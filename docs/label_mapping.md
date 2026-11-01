@@ -48,5 +48,5 @@ This rule belongs to Phase 2b (connecting the model to the scheduler). Phase 1 r
 - **T1 — new people:** s1 persons (P03–P15), all camera IDs except the held-out one.
 - **T2 — new people + unseen camera ID:** s1 persons, camera ID `webcam01`, which is removed from training for all persons. Chosen by coverage: it appears in every person split (s1: 97 videos, 11 persons).
 - Camera IDs do not mean the same position in every kitchen (`docs/figures/`), so T2 tests "a camera ID never trained on", not one fixed angle.
-- Run 1 used `webcam02`. It exists only for 2 test persons (P03, P04) and in no training video, so it was replaced. See `reports/phase2a.md`.
+- Run 1 used `webcam02`. Among test persons it exists only for P03 and P04 (15 videos), so T2 was too small; it was replaced. (It also has 323 videos in s2–s4, which run 1 removed from training.) See `reports/phase2a.md`.
 - **50 Salads:** planned as a second, unseen dataset. **Blocked on 2026-11-01:** the official server (`cvip.computing.dundee.ac.uk`) does not resolve, and the only online copy (`dinggd/50salads` on Hugging Face) has precomputed features, not raw video. T2 replaces it until the server returns.

@@ -17,7 +17,7 @@ SPLITS: dict[str, range] = {
 TEST_SPLIT = "s1"
 VAL_SPLIT = "s4"  # model selection only; never trained on
 # T2 camera, chosen by coverage: present in every person split (s1: 97 videos, 11 persons).
-# Run 1 used webcam02, which exists only for 2 test persons and no training video.
+# Run 1 used webcam02, which covers only 2 of 13 test persons (15 videos).
 HELDOUT_CAMERA = "webcam01"
 
 Split = Literal["train", "val", "T1", "T2"]
@@ -50,23 +50,27 @@ class Segment:
     label: str
 
 
+def video_from_path(path: Path) -> Video | None:
+    """Parse `<person>/<camera folder>/<file>.avi`. Returns None for stereo channel 1, which
+    nearly duplicates channel 0."""
+    m = _NAME.match(path.name)
+    if m is None:
+        raise ValueError(f"unexpected video name: {path}")
+    person, recipe, channel = m.groups()
+    folder = path.parent.name
+    if folder == "stereo":
+        if channel != "0":
+            return None
+        camera = "stereo01"
+    else:
+        camera = folder
+    return Video(path=path, person=person, camera=camera, recipe=recipe)
+
+
 def list_videos(root: Path) -> list[Video]:
-    """List usable videos. Stereo channel 1 is skipped: it nearly duplicates channel 0."""
-    videos = []
-    for path in sorted(root.glob("P*/*/*.avi")):
-        m = _NAME.match(path.name)
-        if m is None:
-            raise ValueError(f"unexpected video name: {path}")
-        person, recipe, channel = m.groups()
-        folder = path.parent.name
-        if folder == "stereo":
-            if channel != "0":
-                continue
-            camera = "stereo01"
-        else:
-            camera = folder
-        videos.append(Video(path=path, person=person, camera=camera, recipe=recipe))
-    return videos
+    """List usable videos under an extracted archive."""
+    videos = (video_from_path(p) for p in sorted(root.glob("P*/*/*.avi")))
+    return [v for v in videos if v is not None]
 
 
 def read_segments(labels_path: Path) -> list[Segment]:

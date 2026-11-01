@@ -56,7 +56,9 @@ The frozen encoder sees the **whole kitchen** at 320×240. Hands and a knife fil
 ## Run 1 (kept for the record)
 
 Run 1 (`reports/phase2a_run1.md`) had two flaws, found after it ran:
-- The held-out camera, `webcam02`, exists only for 2 test people and in no training video. That T2 had 15 videos, and holding the camera out removed nothing from training. Run 2 chose `webcam01` by coverage alone.
+- The held-out camera, `webcam02`, covers only 2 of the 13 test people, so that T2 had just 15 videos. Holding it out also removed 323 videos (s2–s4) from training. Run 2 chose `webcam01` by coverage alone.
+- **Correction (2026-11-01):** an earlier version of this report said `webcam02` had no training videos. That was wrong: run 1 never embedded those videos, so they did not appear in the counts.
+- **Side effect on run 2:** the 323 `webcam02` videos from s2–s4 were never embedded, so run 2 trained and validated without them. Its train and validation sets are smaller than the split rules allow. No video leaked between splits. Phase 2a.2 keeps the same video set, so the comparison stays fair.
 - No validation set, and a fixed 10 epochs. The temporal head overfit (training loss 0.05) and scored below the frame baseline on T1 (0.159 against 0.221).
 
 ## Reproduce

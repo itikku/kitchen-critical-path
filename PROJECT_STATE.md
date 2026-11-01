@@ -36,7 +36,7 @@ Last updated: 2026-11-01
 - 1,389 Breakfast videos, 345,175 frames embedded on the M1 (~40 min).
 - Selected by validation: temporal head + causal per-video centering. Macro-F1 (8 classes): T1 0.202, T2 0.200. Frame baseline: 0.173 / 0.108. Majority: 0.088 / 0.087.
 - Strength: no loss on the unseen camera ID. Weakness: low absolute accuracy, and `cut` F1 only 0.13–0.16.
-- Run 1 flaws (fixed in run 2): held-out camera `webcam02` covered only 2 test people and no training video; no validation set, so the temporal head overfit.
+- Run 1 flaws (fixed in run 2): held-out camera `webcam02` covered only 2 of 13 test people (15 videos) and removed 323 videos from training; no validation set, so the temporal head overfit.
 - Proposed Phase 2a.2: crop to the work area, motion-aware encoder, planner-level binary labels, event-level scoring.
 
 ## Verification (2026-11-01)
