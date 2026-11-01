@@ -1,0 +1,12 @@
+# Personal recordings and downloaded datasets never enter git.
+/sessions/
+data/raw/
+data/cache/
+*.mp4
+*.avi
+.venv/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+data/runs/
