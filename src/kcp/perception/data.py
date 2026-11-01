@@ -15,9 +15,12 @@ SPLITS: dict[str, range] = {
     "s4": range(42, 55),
 }
 TEST_SPLIT = "s1"
-HELDOUT_CAMERA = "webcam02"  # T2: a camera ID never used in training (docs/label_mapping.md)
+VAL_SPLIT = "s4"  # model selection only; never trained on
+# T2 camera, chosen by coverage: present in every person split (s1: 97 videos, 11 persons).
+# Run 1 used webcam02, which exists only for 2 test persons and no training video.
+HELDOUT_CAMERA = "webcam01"
 
-Split = Literal["train", "T1", "T2"]
+Split = Literal["train", "val", "T1", "T2"]
 
 _NAME = re.compile(r"^(P\d+)_(\w+?)(?:_ch(\d))?\.avi$")
 
@@ -86,10 +89,12 @@ def person_split(person: str) -> str:
 
 
 def assign_split(video: Video) -> Split | None:
-    """train = s2-s4 people on seen cameras; T1 = s1 people on seen cameras;
-    T2 = s1 people on the held-out camera. s2-s4 videos from the held-out camera are unused."""
-    is_test_person = person_split(video.person) == TEST_SPLIT
+    """train = s2-s3 people, val = s4 people (both on seen cameras); T1 = s1 people on seen
+    cameras; T2 = s1 people on the held-out camera. Other held-out-camera videos are unused."""
+    split = person_split(video.person)
     is_heldout_camera = video.camera == HELDOUT_CAMERA
-    if is_test_person:
+    if split == TEST_SPLIT:
         return "T2" if is_heldout_camera else "T1"
-    return None if is_heldout_camera else "train"
+    if is_heldout_camera:
+        return None
+    return "val" if split == VAL_SPLIT else "train"

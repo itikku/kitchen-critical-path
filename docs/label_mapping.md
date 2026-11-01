@@ -44,6 +44,9 @@ This rule belongs to Phase 2b (connecting the model to the scheduler). Phase 1 r
 
 ## Test splits (v1, no user labels)
 
-- **T1 — new people:** Breakfast standard split s1 (persons P03–P15), all camera views. Training uses s2–s4.
-- **T2 — new people + new camera position:** s1 persons, one camera view that is removed from training for **all** persons. The view is chosen in Phase 2a, after looking at sample frames: the view most like a phone on a stand.
+- **train:** s2–s3 persons; **val:** s4 persons (model selection only). Both exclude the held-out camera ID.
+- **T1 — new people:** s1 persons (P03–P15), all camera IDs except the held-out one.
+- **T2 — new people + unseen camera ID:** s1 persons, camera ID `webcam01`, which is removed from training for all persons. Chosen by coverage: it appears in every person split (s1: 97 videos, 11 persons).
+- Camera IDs do not mean the same position in every kitchen (`docs/figures/`), so T2 tests "a camera ID never trained on", not one fixed angle.
+- Run 1 used `webcam02`. It exists only for 2 test persons (P03, P04) and in no training video, so it was replaced. See `reports/phase2a.md`.
 - **50 Salads:** planned as a second, unseen dataset. **Blocked on 2026-11-01:** the official server (`cvip.computing.dundee.ac.uk`) does not resolve, and the only online copy (`dinggd/50salads` on Hugging Face) has precomputed features, not raw video. T2 replaces it until the server returns.

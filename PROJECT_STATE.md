@@ -6,8 +6,9 @@ Last updated: 2026-11-01
 
 - Phase 0: complete except 0.5 (phone placement, user) and 0.7 (Jetson inventory, blocked). See the table below.
 - **Phase 1: complete.** All acceptance criteria pass (see "Verification").
-- **Phase 2a: in progress.** Code complete and smoke-tested. The full embedding run is in progress (~1,389 videos; started 06:37). Then: train, evaluate, write `reports/phase2a.md`, delete the extracted videos (keep the 3.7 GB archive, per the user).
-- Git initialized; **no commits** (the user has not asked for any).
+- **Phase 2a: complete** (`reports/phase2a.md`). Two runs; run 2 is the result of record.
+- Git: the user asked for the project to be managed as a git repo (2026-11-01). Commits on `main`, local only (no remote yet).
+- **Waiting for the user:** review the Phase 1 and Phase 2a reports; approve Phase 2a.2 (perception improvements) and/or Phase 2b (Jetson, after setup).
 
 ## Phase 0 results
 
@@ -30,19 +31,27 @@ Last updated: 2026-11-01
 - All remaining scheduler misses are the tomato (median overshoot 2 min). Structural: the tomato is cut before the ~19-min wok phase. The window was not tuned after the run.
 - Product implication: lead the pitch with timing quality and recovery, not minutes saved (Risk 2).
 
+## Phase 2a results (`reports/phase2a.md`)
+
+- 1,389 Breakfast videos, 345,175 frames embedded on the M1 (~40 min).
+- Selected by validation: temporal head + causal per-video centering. Macro-F1 (8 classes): T1 0.202, T2 0.200. Frame baseline: 0.173 / 0.108. Majority: 0.088 / 0.087.
+- Strength: no loss on the unseen camera ID. Weakness: low absolute accuracy, and `cut` F1 only 0.13–0.16.
+- Run 1 flaws (fixed in run 2): held-out camera `webcam02` covered only 2 test people and no training video; no validation set, so the temporal head overfit.
+- Proposed Phase 2a.2: crop to the work area, motion-aware encoder, planner-level binary labels, event-level scoring.
+
 ## Verification (2026-11-01)
 
 ```text
 uv run ruff format --check .   -> all files formatted
 uv run ruff check .            -> All checks passed
 uv run mypy                    -> no issues in 15 source files
-uv run pytest                  -> 35 passed
+uv run pytest                  -> 36 passed
 ```
 
 ## Implementation notes
 
 - The `.avi.labels` files inside the video archive contain two extra labels (`walk_in`, `walk_out`). The pipeline uses the official coarse annotation files instead.
-- Breakfast camera IDs do not mean the same position in each kitchen. T2 = camera ID `webcam02`, never used in training.
+- Breakfast camera IDs do not mean the same position in each kitchen. T2 = camera ID `webcam01` (run 2), never used in training; run 1 used `webcam02`.
 - Embedding speed on the M1: ~135 frames/s at native 320×240 (MPS, fp16, fixed batch shape). Embeddings verified identical (cosine 1.0) before and after the speed fix.
 - Some Breakfast videos are 320×180; the encoder accepts any size.
 
@@ -58,8 +67,8 @@ uv run pytest                  -> 35 passed
 ## Disk use
 
 - Archive `data/raw/breakfast/BreakfastII_15fps_qvga_sync.tar.gz`: 3.7 GB, **keep** (user decision).
-- Extracted videos: 3.8 GB, **delete after the embedding run**.
-- Embedding cache: ~1 GB. Python environment: ~1 GB.
+- Extracted videos: deleted after the embedding run (2026-11-01).
+- Embedding cache: 892 MB. Python environment: ~1 GB. Model runs (`data/runs/`, `data/runs_run1/`): small.
 
 ## Blockers
 
@@ -68,4 +77,4 @@ uv run pytest                  -> 35 passed
 
 ## Next step
 
-Finish Phase 2a (train, evaluate, report). Then the user reviews `reports/phase1.md` and `reports/phase2a.md`.
+The user reviews `reports/phase1.md` and `reports/phase2a.md`, then chooses: Phase 2a.2 (improve perception on the Mac) and/or Phase 2b (Jetson deployment, after the Jetson setup).

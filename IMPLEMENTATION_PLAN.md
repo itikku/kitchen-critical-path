@@ -293,11 +293,11 @@ PyTorch training is a required part of this project. Phase 2a starts after Phase
 
 | # | Step | Verify |
 |---|---|---|
-| 2a.1 | Extract the video archive. Save one sample frame per camera view. Choose the T2 held-out view (the view most like a phone on a stand). | Sample frames in `docs/figures/` (public data, so they may be committed). T2 view recorded in `docs/label_mapping.md`. |
+| 2a.1 | Extract the video archive. Save one sample frame per camera view. Choose the T2 held-out camera ID by coverage (done: `webcam01`; see `docs/label_mapping.md`). | Sample frames in `docs/figures/` (public data, so they may be committed). T2 view recorded in `docs/label_mapping.md`. |
 | 2a.2 | Build a frame index: sample each video at 2 fps; give each frame its mapped label. Never split one video between train and test. | `test_index.py`: every frame has one of the 8 labels; no person appears in both train and test; no T2-view frame is in train. |
 | 2a.3 | Compute embeddings with a frozen, ImageNet-pretrained **MobileNetV3-Large** (fp16, MPS, batch 64). Save in chunks to `data/cache/`. DINOv2-S is a second run only if time allows. | Cache row count = index row count. Peak memory ≤ 3 GB. |
 | 2a.4 | Baseline: a linear classifier on single-frame embeddings (no time context). | Metrics JSON for T1 and T2. |
-| 2a.5 | Train the temporal head: 8-frame windows (4 s at 2 fps), label = label of the center frame; class-balanced loss; seeded. | Training loss goes down. Checkpoint and config saved. |
+| 2a.5 | Train the temporal head: 8-frame windows (~4.3 s), label = label of the center frame; class-balanced loss; seeded. Choose the configuration and epoch on validation people (s4) only. | Training loss goes down. Checkpoint, config, and validation log saved. |
 | 2a.6 | Evaluate on T1 and T2: macro F1, per-class precision and recall, confusion matrix; compare with the 2a.4 baseline. | `kcp-train evaluate` writes `reports/phase2a_metrics.json` and `reports/phase2a.md`, including failures. |
 
 New dependencies: `torch`, `torchvision`, `timm`, `av`, `numpy`, `scikit-learn`. One download: MobileNetV3-Large ImageNet weights through `timm` (about 20 MB, free).

@@ -23,7 +23,7 @@ Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/).
 
 ```sh
 uv sync
-uv run pytest                      # 35 tests
+uv run pytest                      # 36 tests
 uv run kcp replay tests/fixtures/sessions/ip_late_rice.jsonl \
     --graph data/graphs/tofu_stir_fry.instant_pot.v0.json
 uv run kcp simulate --graph data/graphs/tofu_stir_fry.frozen_rice.v0.json --sessions 200
@@ -47,7 +47,7 @@ recipe task graph (dependencies, durations, quality windows) ──┘
 |---|---|---|
 | Simulated sessions, frozen-rice variant | 2.1 min faster; window-miss sessions 96% → 46% | `reports/phase1.md` |
 | Simulated sessions, Instant Pot variant | same total time; rice-freshness misses 60% → 0% | `reports/phase1.md` |
-| Action model on unseen people / unseen camera | see `reports/phase2a.md` | `reports/phase2a.md` |
+| Action model (8 classes), unseen people / unseen camera | macro-F1 0.20 / 0.20 (frame baseline 0.17 / 0.11; majority 0.09) | `reports/phase2a.md` |
 
 ## Reproduce the perception results
 
@@ -63,6 +63,7 @@ uv run kcp-train evaluate   # writes reports/phase2a.md
 
 - Durations and quality windows are authored heuristics, not measurements.
 - Public training data shows breakfast prep (fruit, bread), not stir-fry vegetables. The camera detects *that* you are cutting, not *what*; the planner infers the task from the recipe graph.
+- The action model is weak in absolute terms (macro-F1 0.20), and weakest on `cut`. See the next steps in `reports/phase2a.md`.
 - Simulated results are not real cooking measurements. No result yet comes from the developer's own kitchen.
 - Food safety is out of scope: the system never judges doneness, temperature, or freshness for safety.
 

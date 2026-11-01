@@ -28,7 +28,9 @@ def test_splits_keep_people_and_heldout_camera_out_of_training() -> None:
     assert assign_split(video("P03", "cam01")) == "T1"
     assert assign_split(video("P15", HELDOUT_CAMERA)) == "T2"
     assert assign_split(video("P16", "cam01")) == "train"
+    assert assign_split(video("P42", "cam01")) == "val"
     assert assign_split(video("P54", HELDOUT_CAMERA)) is None  # unused, never trained on
+    assert assign_split(video("P20", HELDOUT_CAMERA)) is None
 
 
 def test_list_videos_skips_stereo_channel_1(tmp_path: Path) -> None:
@@ -57,3 +59,21 @@ def test_mapping_report_lists_every_class(tmp_path: Path) -> None:
     for c in CLASSES:
         assert c in report
     assert len(out.read_text().splitlines()) == 5
+
+
+def test_centering_uses_only_past_frames_of_the_same_video() -> None:
+    import numpy as np
+
+    from kcp.perception.train import SplitData, centered
+
+    emb = np.array([[1.0], [3.0], [5.0], [10.0], [20.0]], dtype=np.float16)
+    data = SplitData(
+        emb=emb,
+        y=np.zeros(5, dtype=np.int64),
+        video_start=np.array([0, 0, 0, 3, 3]),
+        video_end=np.array([2, 2, 2, 4, 4]),
+        keys=["a", "b"],
+    )
+    out = centered(data).emb.astype(np.float32)[:, 0]
+    # video a: running means 1, 2, 3; video b starts fresh: 10, 15
+    assert out.tolist() == [0.0, 1.0, 2.0, 0.0, 5.0]

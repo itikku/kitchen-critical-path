@@ -3,7 +3,8 @@
 - `frame_linear`: a linear layer on one frame (baseline, no time context);
 - `temporal_head`: a small 1D-conv network over an 8-frame window (~4.3 s) centered on the frame.
 
-Hyperparameters are fixed in advance; the test splits are never used for tuning."""
+Model selection (configuration and number of epochs) uses the validation people (s4) only;
+the test splits T1 and T2 are evaluated once, after selection."""
 
 from __future__ import annotations
 
@@ -15,6 +16,7 @@ from pathlib import Path
 import numpy as np
 import torch
 import torch.nn as nn
+from sklearn.metrics import f1_score
 
 from kcp.perception.data import Split, Video, assign_split
 from kcp.perception.embed import ENCODER
@@ -34,6 +36,21 @@ class TrainConfig:
     hidden: int = 256
     dropout: float = 0.2
     class_weight_power: float = 0.5  # weight = (1 / class frequency) ** power, mean-normalized
+    center: bool = False  # subtract each video's running-mean embedding (causal; works live)
+
+    @property
+    def name(self) -> str:
+        return self.model + ("_centered" if self.center else "")
+
+
+# Run 2 configurations, fixed before any run-2 result was seen. The temporal head gets stronger
+# regularization because run 1 overfit (train loss 0.05, test macro-F1 below the frame baseline).
+CONFIGS: tuple[TrainConfig, ...] = (
+    TrainConfig(model="frame_linear"),
+    TrainConfig(model="frame_linear", center=True),
+    TrainConfig(model="temporal_head", dropout=0.5, weight_decay=0.05),
+    TrainConfig(model="temporal_head", dropout=0.5, weight_decay=0.05, center=True),
+)
 
 
 @dataclass
@@ -75,6 +92,23 @@ def load_split(cache_dir: Path, split: Split) -> SplitData:
         video_end=np.concatenate(ends),
         keys=keys,
     )
+
+
+def centered(data: SplitData) -> SplitData:
+    """Subtract, from each frame, the mean embedding of its video up to and including that frame.
+    This removes most of the kitchen's static appearance and keeps what changes."""
+    emb = data.emb.astype(np.float32)
+    out = np.empty_like(emb)
+    for start in np.unique(data.video_start):
+        end = int(data.video_end[start]) + 1
+        seg = emb[start:end]
+        running = np.cumsum(seg, axis=0) / np.arange(1, len(seg) + 1)[:, None]
+        out[start:end] = seg - running
+    return SplitData(out.astype(np.float16), data.y, data.video_start, data.video_end, data.keys)
+
+
+def prepare(data: SplitData, cfg: TrainConfig) -> SplitData:
+    return centered(data) if cfg.center else data
 
 
 @dataclass
@@ -160,7 +194,14 @@ def predict(model: nn.Module, data: SplitData, mean: np.ndarray, std: np.ndarray
     return torch.cat(preds).cpu().numpy()
 
 
-def train_one(cfg: TrainConfig, train: SplitData, out_dir: Path) -> None:
+def macro_f1(y: np.ndarray, pred: np.ndarray) -> float:
+    labels = list(range(len(CLASSES)))
+    return float(f1_score(y, pred, labels=labels, average="macro", zero_division=0))
+
+
+def train_one(cfg: TrainConfig, train: SplitData, val: SplitData, out_dir: Path) -> None:
+    """Train for cfg.epochs; keep the epoch with the best validation macro-F1."""
+    train, val = prepare(train, cfg), prepare(val, cfg)
     torch.manual_seed(SEED)
     dev = device()
     dim = train.emb.shape[1]
@@ -176,6 +217,7 @@ def train_one(cfg: TrainConfig, train: SplitData, out_dir: Path) -> None:
     ds = to_device(train, mean, std)
     gen = torch.Generator().manual_seed(SEED)
     log = []
+    best_f1, best_epoch, best_state = -1.0, 0, None
     for epoch in range(cfg.epochs):
         model.train()
         t0, steps = time.perf_counter(), 0
@@ -191,15 +233,22 @@ def train_one(cfg: TrainConfig, train: SplitData, out_dir: Path) -> None:
             steps += 1
         sched.step()
         mean_loss = total.item() / steps
-        log.append({"epoch": epoch + 1, "loss": mean_loss, "seconds": time.perf_counter() - t0})
+        val_f1 = macro_f1(val.y, predict(model, val, mean, std))
+        if val_f1 > best_f1:
+            best_f1, best_epoch = val_f1, epoch + 1
+            best_state = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
+        seconds = time.perf_counter() - t0
+        log.append(
+            {"epoch": epoch + 1, "loss": mean_loss, "val_macro_f1": val_f1, "seconds": seconds}
+        )
         print(
-            f"{cfg.model} epoch {epoch + 1}/{cfg.epochs} loss {mean_loss:.4f} "
-            f"({time.perf_counter() - t0:.0f}s)",
+            f"{cfg.name} epoch {epoch + 1}/{cfg.epochs} loss {mean_loss:.4f} "
+            f"val macro-F1 {val_f1:.3f} ({seconds:.0f}s)",
             flush=True,
         )
     out_dir.mkdir(parents=True, exist_ok=True)
     torch.save(
-        {"state_dict": model.state_dict(), "mean": mean, "std": std, "dim": dim},
+        {"state_dict": best_state, "mean": mean, "std": std, "dim": dim},
         out_dir / "model.pt",
     )
     params = sum(p.numel() for p in model.parameters())
@@ -211,23 +260,31 @@ def train_one(cfg: TrainConfig, train: SplitData, out_dir: Path) -> None:
         "parameters": params,
         "train_frames": int(len(train.y)),
         "train_videos": len(train.keys),
+        "val_frames": int(len(val.y)),
+        "val_videos": len(val.keys),
+        "best_epoch": best_epoch,
+        "best_val_macro_f1": best_f1,
         "class_weights": dict(zip(CLASSES, map(float, weight), strict=True)),
         "log": log,
     }
     (out_dir / "train.json").write_text(json.dumps(meta, indent=2) + "\n")
 
 
-def load_model(run_dir: Path) -> tuple[nn.Module, np.ndarray, np.ndarray]:
+def load_model(run_dir: Path) -> tuple[nn.Module, TrainConfig, np.ndarray, np.ndarray]:
     meta = json.loads((run_dir / "train.json").read_text())
     cfg = TrainConfig(**meta["config"])
     ckpt = torch.load(run_dir / "model.pt", weights_only=False)
     model = build_model(cfg, int(ckpt["dim"]))
     model.load_state_dict(ckpt["state_dict"])
-    return model.to(device()), ckpt["mean"], ckpt["std"]
+    return model.to(device()), cfg, ckpt["mean"], ckpt["std"]
 
 
 def train_all(cache_dir: Path, runs_dir: Path) -> None:
-    train = load_split(cache_dir, "train")
-    print(f"train: {len(train.keys)} videos, {len(train.y)} frames", flush=True)
-    for name in MODELS:
-        train_one(TrainConfig(model=name), train, runs_dir / name)
+    train, val = load_split(cache_dir, "train"), load_split(cache_dir, "val")
+    print(
+        f"train: {len(train.keys)} videos, {len(train.y)} frames; "
+        f"val: {len(val.keys)} videos, {len(val.y)} frames",
+        flush=True,
+    )
+    for cfg in CONFIGS:
+        train_one(cfg, train, val, runs_dir / cfg.name)
