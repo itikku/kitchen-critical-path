@@ -13,3 +13,7 @@ data/runs/
 data/runs_run1/
 data/runs_2a2/
 data/edge/
+
+# Private notes (kept on this machine, never published)
+HANDOFF.md
+docs/LEARNING_GUIDE.md

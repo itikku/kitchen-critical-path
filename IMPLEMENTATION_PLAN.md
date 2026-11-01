@@ -2,7 +2,7 @@
 
 > **Status:** DRAFT — waiting for user approval. No code exists yet.
 > **Scope of this plan:** Phase 0 (specification) and Phase 1 (offline replay + scheduler). Phases 2–5 get their own plans later.
-> **Read first:** `HANDOFF.md`. This plan follows it, except where "Changes from the handoff" says otherwise.
+> **Background:** this plan follows a private discovery handoff (not in this repository). "Changes from the handoff" lists where it differs.
 
 ## Decisions made on 2026-11-01
 
