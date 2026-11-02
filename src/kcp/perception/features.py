@@ -228,6 +228,15 @@ def run(archive: Path, annotation_root: Path, cache_dir: Path, limit: int | None
 # ------------------------------------------------------- Phase 2a.3 (IMPLEMENTATION_PLAN.md)
 
 WRIST_FRAMES = 8
+
+
+def _save(target: Path, **arrays: np.ndarray) -> None:
+    """Write to a temporary file, then rename: an interruption never leaves a partial file."""
+    tmp = target.with_name(target.stem + ".tmp.npz")
+    np.savez(tmp, **arrays)
+    tmp.rename(target)
+
+
 WRIST_MARGIN = 48
 _LEFT_WRIST, _RIGHT_WRIST = 9, 10  # COCO keypoint indices
 
@@ -342,12 +351,12 @@ def run_2a3(archive: Path, annotation_root: Path, cache_dir: Path, wrist: bool =
             frames = np.concatenate([old["frame"], idx])
             order = np.argsort(frames)
             emb_all = np.concatenate([old["emb"], emb])[order]
-            np.savez(dense_t, emb=emb_all, y=labels[frames[order]], frame=frames[order])
+            _save(dense_t, emb=emb_all, y=labels[frames[order]], frame=frames[order])
         if wrist and pose is not None and not wrist_t.exists():
             wbox, n_points = wrist_box(pose, device, data, n)
             used = wbox if wbox is not None else box
             emb, idx = clip_features(enc, data, n, used, [int(a) for a in old["frame"]])
-            np.savez(wrist_t, emb=emb, y=labels[idx], frame=idx)
+            _save(wrist_t, emb=emb, y=labels[idx], frame=idx)
             wrist_log[video.key] = {"box": list(used), "points": n_points, "fallback": wbox is None}
         done += 1
         if done % 25 == 0:
