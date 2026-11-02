@@ -1,0 +1,18 @@
+{
+  "machine": "macOS-26.3.2-arm64-arm-64bit-Mach-O",
+  "providers": [
+    "CPUExecutionProvider"
+  ],
+  "features": "s3d_crop",
+  "encoder": {
+    "p50_ms": 64.42368729040027,
+    "p95_ms": 85.68967455066736
+  },
+  "head": {
+    "p50_ms": 0.08393777534365654,
+    "p95_ms": 0.086534908041358
+  },
+  "peak_rss_mb": 207.290368,
+  "realtime_budget_ms": 2133.3333333333335,
+  "budget_used_p95": 0.04020759818376971
+}

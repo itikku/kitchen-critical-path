@@ -34,6 +34,7 @@ def binary_ap(y: np.ndarray, probs: np.ndarray, classes: list[int]) -> float:
 
 def smooth(p: np.ndarray, width: int) -> np.ndarray:
     """Centered moving average; the edges average over the steps that exist."""
+    width = min(width, len(p))  # np.convolve("same") returns max(len(p), width) values
     if width <= 1:
         return p
     kernel = np.ones(width)

@@ -8,7 +8,9 @@ Last updated: 2026-11-01
 - **Phase 1: complete.** All acceptance criteria pass (see "Verification").
 - **Phase 2a: complete** (`reports/phase2a.md`). Two runs; run 2 is the result of record.
 - Git: the user asked for the project to be managed as a git repo (2026-11-01). Commits on `main`, local only (no remote yet).
-- **Waiting for the user:** review the Phase 1 and Phase 2a reports; approve Phase 2a.2 (perception improvements) and/or Phase 2b (Jetson, after setup).
+- **Phase 2a.2: complete** (`reports/phase2a2.md`). Selected model: S3D clips on motion crops + temporal head with causal centering.
+- **Phase 2b: Mac side complete** (streaming, run detector, interpreter, ONNX export, benchmark). **Jetson side blocked:** the Jetson is not set up yet (user, 2026-11-01).
+- Public repo: https://github.com/itikku/kitchen-critical-path (pushed 2026-11-01). `HANDOFF.md` and `docs/LEARNING_GUIDE.md` are private, git-ignored, and were removed from the public history.
 
 ## Phase 0 results
 
@@ -39,13 +41,26 @@ Last updated: 2026-11-01
 - Run 1 flaws (fixed in run 2): held-out camera `webcam02` covered only 2 of 13 test people (15 videos) and removed 323 videos from training; no validation set, so the temporal head overfit.
 - Proposed Phase 2a.2: crop to the work area, motion-aware encoder, planner-level binary labels, event-level scoring.
 
+## Phase 2a.2 results (`reports/phase2a2.md`)
+
+- Macro-F1 (8 classes): T1 0.397, T2 0.417 (run 2: 0.202 / 0.200). Cutting AP 0.384 / 0.418 (random ≈ 0.10). Mixing AP 0.490 / 0.550.
+- Cutting-event F1: 0.35 / 0.43 (run 2: 0.08 / 0.15). Small counts: 27 and 19 true runs.
+- The two `mnv3_full` models reproduce run 2 exactly.
+- Motion crops are coarse (they center on the whole person); cropping alone added ~0.01–0.02 macro-F1.
+
+## Phase 2b (Mac side)
+
+- Streaming head = batch evaluation (tested). ONNX = PyTorch within 1e-6 (MobileNetV3 and S3D).
+- Mac CPU, ONNX Runtime: S3D encoder 86 ms p95 + head 0.09 ms per 2.1 s step (4% of real time). `reports/phase2b_mac_benchmark.json`.
+- Exported model: `data/edge/s3d_selected/` (not in git; recreate with `kcp.edge.export`).
+
 ## Verification (2026-11-01)
 
 ```text
 uv run ruff format --check .   -> all files formatted
 uv run ruff check .            -> All checks passed
-uv run mypy                    -> no issues in 15 source files
-uv run pytest                  -> 36 passed
+uv run mypy                    -> no issues in 23 source files
+uv run pytest                  -> 43 passed
 ```
 
 ## Implementation notes
@@ -68,7 +83,7 @@ uv run pytest                  -> 36 passed
 
 - Archive `data/raw/breakfast/BreakfastII_15fps_qvga_sync.tar.gz`: 3.7 GB, **keep** (user decision).
 - Extracted videos: deleted after the embedding run (2026-11-01).
-- Embedding cache: 892 MB. Python environment: ~1 GB. Model runs (`data/runs/`, `data/runs_run1/`): small.
+- Embedding caches: 892 MB (`mobilenetv3_large_100`), 711 MB (`mnv3_crop`), 145 MB (`s3d_crop`). Python environment: ~1 GB. Model runs and ONNX exports (`data/runs*/`, `data/edge/`): small.
 
 ## Blockers
 
@@ -77,4 +92,4 @@ uv run pytest                  -> 36 passed
 
 ## Next step
 
-The user reviews `reports/phase1.md` and `reports/phase2a.md`, then chooses: Phase 2a.2 (improve perception on the Mac) and/or Phase 2b (Jetson deployment, after the Jetson setup).
+When the Jetson is set up: copy `data/edge/s3d_selected/` to it, run `python -m kcp.edge.bench` and `trtexec`, and record `reports/phase2b.md`. Optional perception work: hand-based crops; S3D every 16 frames.

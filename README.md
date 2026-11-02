@@ -2,7 +2,7 @@
 
 **Mise en place is a compiler.** A critical-path planner for cooking that watches what has actually happened, tracks dependencies and quality windows, and recommends the next best task.
 
-Target hardware: NVIDIA Jetson Orin Nano Super (8 GB). Current status: the planner and the first PyTorch perception model run offline on a Mac. Jetson deployment is next.
+Target hardware: NVIDIA Jetson Orin Nano Super (8 GB). Current status: the planner and the PyTorch perception model run offline on a Mac, and the edge pipeline exports to ONNX. On-device benchmarks are next.
 
 ## What it does
 
@@ -23,7 +23,7 @@ Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/).
 
 ```sh
 uv sync
-uv run pytest                      # 36 tests
+uv run pytest                      # 43 tests
 uv run kcp replay tests/fixtures/sessions/ip_late_rice.jsonl \
     --graph data/graphs/tofu_stir_fry.instant_pot.v0.json
 uv run kcp simulate --graph data/graphs/tofu_stir_fry.frozen_rice.v0.json --sessions 200
@@ -39,7 +39,9 @@ recipe task graph (dependencies, durations, quality windows) ──┘
 
 **Scheduler rules** (`src/kcp/scheduler.py`): a task needs its prerequisites; one active task at a time; start passive tasks (timers, machines) first; hold a task until its quality window opens, just in time for passive tasks; rank the rest by the longest remaining path; ask to confirm a low-confidence state.
 
-**Perception** (`src/kcp/perception/`): a frozen, ImageNet-pretrained MobileNetV3-Large encodes frames once; a small PyTorch temporal head classifies 8-frame windows (~4 s) into 8 prep-zone actions (cut, peel, pour, stir, transfer, take object, background, other). It trains on [Breakfast Actions](https://serre.lab.brown.edu/breakfast-actions-dataset.html) (CC BY 4.0).
+**Perception** (`src/kcp/perception/`): each video is cropped to where motion happens; a frozen, Kinetics-pretrained S3D video encoder turns 8-frame clips into embeddings, computed once; a small PyTorch temporal head (0.66M parameters) classifies 8-step windows into 8 prep-zone actions (cut, peel, pour, stir, transfer, take object, background, other). It trains on [Breakfast Actions](https://serre.lab.brown.edu/breakfast-actions-dataset.html) (CC BY 4.0).
+
+**Edge** (`src/kcp/edge/`): a NumPy-only streaming head that matches the offline evaluation (tested), a run detector, an interpreter that turns actions into task events and asks the cook to confirm completions, ONNX export with parity checks, and an ONNX Runtime benchmark.
 
 ## Results so far
 
@@ -47,23 +49,25 @@ recipe task graph (dependencies, durations, quality windows) ──┘
 |---|---|---|
 | Simulated sessions, frozen-rice variant | 2.1 min faster; window-miss sessions 96% → 46% | `reports/phase1.md` |
 | Simulated sessions, Instant Pot variant | same total time; rice-freshness misses 60% → 0% | `reports/phase1.md` |
-| Action model (8 classes), unseen people / unseen camera | macro-F1 0.20 / 0.20 (frame baseline 0.17 / 0.11; majority 0.09) | `reports/phase2a.md` |
+| Action model (8 classes), unseen people / unseen camera | macro-F1 0.40 / 0.42 (first model 0.20 / 0.20; majority 0.09) | `reports/phase2a2.md` |
+| Cutting detection, unseen people / unseen camera | average precision 0.38 / 0.42 (random ≈ 0.10) | `reports/phase2a2.md` |
+| ONNX export and Mac CPU latency | matches PyTorch to 1e-6; 86 ms per 2.1 s step (p95) | `reports/phase2b_mac_benchmark.json` |
 
 ## Reproduce the perception results
 
 ```sh
 uv sync --extra train
 # Download Breakfast Actions (see docs/data_provenance.md) into data/raw/breakfast/
-uv run kcp-train embed      # frame embeddings, cached in data/cache/ (~1 h on an M1)
-uv run kcp-train train      # frame baseline + temporal head
-uv run kcp-train evaluate   # writes reports/phase2a.md
+uv run kcp-train features      # motion crop + S3D clips, streamed from the archive (~1 h 45 min on an M1)
+uv run kcp-train train-2a2     # six models over three feature sets
+uv run kcp-train evaluate-2a2  # writes reports/phase2a2_results.md
 ```
 
 ## Limits
 
 - Durations and quality windows are authored heuristics, not measurements.
 - Public training data shows breakfast prep (fruit, bread), not stir-fry vegetables. The camera detects *that* you are cutting, not *what*; the planner infers the task from the recipe graph.
-- The action model is weak in absolute terms (macro-F1 0.20), and weakest on `cut`. See the next steps in `reports/phase2a.md`.
+- The action model finds about a third to a half of real cutting runs (event F1 0.35–0.43); the cook confirms each completion. See `reports/phase2a2.md`.
 - Simulated results are not real cooking measurements. No result yet comes from the developer's own kitchen.
 - Food safety is out of scope: the system never judges doneness, temperature, or freshness for safety.
 

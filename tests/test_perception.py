@@ -97,3 +97,14 @@ def test_event_scoring_matches_overlapping_runs() -> None:
     frame = (t * 15).astype(int)
     score = event_score(y, p, frame, np.zeros(len(t), dtype=int), width_s=1.0, threshold=0.5)
     assert (score.tp, score.fp, score.fn) == (1, 0, 0)
+
+
+def test_smoothing_keeps_length_when_window_is_longer_than_video() -> None:
+    import numpy as np
+
+    from kcp.perception.planner_metrics import smooth
+
+    p = np.array([0.0, 1.0, 0.0])
+    out = smooth(p, width=8)
+    # The window is capped at 3 steps; edges average over the steps that exist.
+    assert len(out) == 3 and np.allclose(out, [0.5, 1 / 3, 0.5])
