@@ -230,10 +230,10 @@ def run(archive: Path, annotation_root: Path, cache_dir: Path, limit: int | None
 WRIST_FRAMES = 8
 
 
-def _save(target: Path, **arrays: np.ndarray) -> None:
+def _save(target: Path, emb: np.ndarray, y: np.ndarray, frame: np.ndarray) -> None:
     """Write to a temporary file, then rename: an interruption never leaves a partial file."""
     tmp = target.with_name(target.stem + ".tmp.npz")
-    np.savez(tmp, **arrays)
+    np.savez(tmp, emb=emb, y=y, frame=frame)
     tmp.rename(target)
 
 
