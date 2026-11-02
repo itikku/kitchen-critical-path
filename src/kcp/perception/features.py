@@ -223,3 +223,136 @@ def run(archive: Path, annotation_root: Path, cache_dir: Path, limit: int | None
         f"done: {done} videos, {frames} frames, {clips} clips, {time.perf_counter() - t0:.0f}s",
         flush=True,
     )
+
+
+# ------------------------------------------------------- Phase 2a.3 (IMPLEMENTATION_PLAN.md)
+
+WRIST_FRAMES = 8
+WRIST_MARGIN = 48
+_LEFT_WRIST, _RIGHT_WRIST = 9, 10  # COCO keypoint indices
+
+
+def clip_features(
+    enc: Encoders, data: bytes, n: int, box: tuple[int, int, int, int], anchors: list[int]
+) -> tuple[np.ndarray, np.ndarray]:
+    """S3D features for 8-frame clips centered on `anchors`, cropped to `box`.
+    Returns (features, anchors actually covered by decoded frames)."""
+    clip_frames = {a: [min(max(a + k, 0), n - 1) for k in CLIP_OFFSETS] for a in anchors}
+    needed = {i for frames in clip_frames.values() for i in frames}
+    crops: dict[int, np.ndarray] = {}
+    batch: list[np.ndarray] = []
+    out: list[np.ndarray] = []
+    done: list[int] = []
+    k = 0
+    last = -1
+    with av.open(io.BytesIO(data), mode="r") as container:
+        for i, frame in enumerate(container.decode(video=0)):
+            if i >= n:
+                break
+            last = i
+            if i in needed:
+                img = frame.to_image().crop(box)  # type: ignore[no-untyped-call]
+                crops[i] = np.asarray(img.resize((SIZE, SIZE), Image.Resampling.BILINEAR))
+            while k < len(anchors) and clip_frames[anchors[k]][-1] <= i:
+                batch.append(np.stack([crops[j] for j in clip_frames[anchors[k]]]))
+                done.append(anchors[k])
+                k += 1
+            if len(batch) >= 8:
+                out.append(enc.clips(np.stack(batch)))
+                batch = []
+            for j in [j for j in crops if j < i - 15]:
+                del crops[j]
+    for a in anchors[k:]:  # the video ended before its annotation
+        if a > last:
+            break
+        batch.append(np.stack([crops[max(j for j in crops if j <= f)] for f in clip_frames[a]]))
+        done.append(a)
+    if batch:
+        out.append(enc.clips(np.stack(batch)))
+    feats = np.concatenate(out) if out else np.zeros((0, 1024), dtype=np.float16)
+    return feats, np.array(done, dtype=np.int32)
+
+
+def wrist_box(
+    pose: torch.nn.Module, device: torch.device, data: bytes, n: int
+) -> tuple[tuple[int, int, int, int] | None, int]:
+    """Square crop around the cook's wrists on WRIST_FRAMES evenly spaced frames.
+    Returns (box or None if fewer than 3 confident wrist points, number of points)."""
+    picks = set(np.linspace(n * 0.1, n * 0.9, WRIST_FRAMES).astype(int).tolist())
+    frames, width, height = [], 0, 0
+    with av.open(io.BytesIO(data), mode="r") as container:
+        for i, frame in enumerate(container.decode(video=0)):
+            if i >= n:
+                break
+            if i in picks:
+                rgb = frame.to_ndarray(format="rgb24")
+                height, width = rgb.shape[:2]
+                frames.append(torch.from_numpy(rgb).permute(2, 0, 1).float().div(255).to(device))
+    points = []
+    with torch.inference_mode():
+        for o in pose(frames):
+            if len(o["scores"]) and float(o["scores"][0]) > 0.8:
+                kp, ks = o["keypoints"][0].cpu().numpy(), o["keypoints_scores"][0].cpu().numpy()
+                points += [kp[j, :2] for j in (_LEFT_WRIST, _RIGHT_WRIST) if ks[j] > 2.0]
+    if len(points) < 3:
+        return None, len(points)
+    pts = np.array(points)
+    x0, y0 = pts.min(0) - WRIST_MARGIN
+    x1, y1 = pts.max(0) + WRIST_MARGIN
+    side = int(np.clip(max(x1 - x0, y1 - y0), MIN_CROP, min(width, height)))
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    left = int(np.clip(cx - side / 2, 0, width - side))
+    top = int(np.clip(cy - side / 2, 0, height - side))
+    return (left, top, left + side, top + side), len(points)
+
+
+def run_2a3(archive: Path, annotation_root: Path, cache_dir: Path, wrist: bool = True) -> None:
+    """Experiment 1 (denser clips, motion crop) and, if `wrist`, experiment 2 (wrist crop)."""
+    from torchvision.models.detection import (
+        KeypointRCNN_ResNet50_FPN_Weights,
+        keypointrcnn_resnet50_fpn,
+    )
+
+    device = torch.device("mps" if torch.backends.mps.is_available() else "cpu")
+    enc = Encoders(device)
+    pose = None
+    if wrist:
+        weights = KeypointRCNN_ResNet50_FPN_Weights.COCO_V1
+        pose = keypointrcnn_resnet50_fpn(weights=weights).eval().to(device)
+    motion = json.loads((cache_dir / "crop_boxes.json").read_text())
+    dense_dir, wrist_dir = cache_dir / "s3d_crop16", cache_dir / "s3d_wrist"
+    dense_dir.mkdir(exist_ok=True)
+    wrist_dir.mkdir(exist_ok=True)
+    wrist_log_path = cache_dir / "wrist_boxes.json"
+    wrist_log = json.loads(wrist_log_path.read_text()) if wrist_log_path.exists() else {}
+    done = 0
+    t0 = time.perf_counter()
+    for video, data in iter_archive(archive):
+        base = cache_dir / "s3d_crop" / f"{video.key}.npz"  # same videos as Phase 2a.2
+        dense_t, wrist_t = dense_dir / f"{video.key}.npz", wrist_dir / f"{video.key}.npz"
+        if not base.exists() or (dense_t.exists() and (wrist_t.exists() or not wrist)):
+            continue
+        labels = frame_labels(video.annotation_path(annotation_root))
+        n = len(labels)
+        box = tuple(motion[video.key])
+        old = np.load(base)
+        if not dense_t.exists():
+            between = [a for a in range(CLIP_STRIDE // 2, n, CLIP_STRIDE) if labels[a] >= 0]
+            emb, idx = clip_features(enc, data, n, box, between)
+            frames = np.concatenate([old["frame"], idx])
+            order = np.argsort(frames)
+            emb_all = np.concatenate([old["emb"], emb])[order]
+            np.savez(dense_t, emb=emb_all, y=labels[frames[order]], frame=frames[order])
+        if wrist and pose is not None and not wrist_t.exists():
+            wbox, n_points = wrist_box(pose, device, data, n)
+            used = wbox if wbox is not None else box
+            emb, idx = clip_features(enc, data, n, used, [int(a) for a in old["frame"]])
+            np.savez(wrist_t, emb=emb, y=labels[idx], frame=idx)
+            wrist_log[video.key] = {"box": list(used), "points": n_points, "fallback": wbox is None}
+        done += 1
+        if done % 25 == 0:
+            wrist_log_path.write_text(json.dumps(wrist_log))
+            print(f"{done} videos, {time.perf_counter() - t0:.0f}s", flush=True)
+    wrist_log_path.write_text(json.dumps(wrist_log))
+    fallbacks = sum(v["fallback"] for v in wrist_log.values())
+    print(f"done: {done} videos, wrist fallbacks {fallbacks}, {time.perf_counter() - t0:.0f}s")

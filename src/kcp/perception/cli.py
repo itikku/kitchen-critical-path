@@ -24,6 +24,10 @@ def main(argv: list[str] | None = None) -> None:
     sub.add_parser("train", help="train the frame baseline and the temporal head")
     sub.add_parser("evaluate", help="evaluate both models on T1 and T2 and write the report")
     sub.add_parser("train-2a2", help="Phase 2a.2: train on all three feature sets")
+    p_f3 = sub.add_parser("features-2a3", help="Phase 2a.3: denser clips and wrist crops")
+    p_f3.add_argument("--no-wrist", action="store_true", help="only the denser-clip experiment")
+    sub.add_parser("train-2a3", help="Phase 2a.3: train on the new feature sets")
+    sub.add_parser("evaluate-2a3", help="Phase 2a.3: evaluate all S3D models")
     sub.add_parser("evaluate-2a2", help="Phase 2a.2: evaluate with planner-level metrics")
     args = parser.parse_args(argv)
 
@@ -51,6 +55,20 @@ def main(argv: list[str] | None = None) -> None:
         from kcp.perception.evaluate import evaluate_2a2
 
         evaluate_2a2(CACHE_DIR, RUNS_DIR_2A2, REPORTS_DIR)
+    elif args.command == "features-2a3":
+        from kcp.perception.features import run_2a3
+
+        run_2a3(ARCHIVE, ANNOTATION_ROOT, CACHE_DIR, wrist=not args.no_wrist)
+    elif args.command == "train-2a3":
+        from kcp.perception.train import CONFIGS_2A3, train_all
+
+        train_all(CACHE_DIR, RUNS_DIR_2A2, CONFIGS_2A3)
+    elif args.command == "evaluate-2a3":
+        from kcp.perception.evaluate import evaluate_2a2
+        from kcp.perception.train import CONFIGS_2A2, CONFIGS_2A3
+
+        s3d = tuple(c for c in (*CONFIGS_2A2, *CONFIGS_2A3) if c.features.startswith("s3d"))
+        evaluate_2a2(CACHE_DIR, RUNS_DIR_2A2, REPORTS_DIR, s3d, "phase2a3")
 
 
 if __name__ == "__main__":

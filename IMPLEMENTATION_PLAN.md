@@ -357,6 +357,20 @@ Fine-tuning the encoder itself (instead of freezing it) is much slower and is no
 
 **Acceptance:** one command per step; results in `reports/phase2a2.md`; run 2 stays the comparison point; failures reported.
 
+## Phase 2a.3 — Denser clips and hand-centered crops (approved 2026-11-01)
+
+**Starting point:** the Phase 2a.2 selected model (S3D on motion crops, a clip every 32 frames, temporal head + causal centering).
+
+**Two experiments, each changing one thing:**
+1. **Denser clips:** a clip every 16 frames (~1.07 s) instead of every 32, same motion crop. Doubles the training steps. The existing 32-frame clips are reused; only the in-between clips are new.
+2. **Wrist crop:** keep a clip every 32 frames, but crop around the cook's **wrists** instead of whole-body motion. Wrists come from torchvision's Keypoint R-CNN (COCO person keypoints), run on 8 evenly spaced frames per video. The crop is a square around all confident wrist points (person score > 0.8, keypoint score > 2), with a 48-pixel margin and a minimum side of 128. If fewer than 3 wrist points are found, the video keeps its motion crop. Keypoint R-CNN measured 1.7 frames/s on the M1 GPU, so wrist finding takes ~90 min.
+
+**Feasibility gate (before experiment 2 runs):** check the wrist points on 4 videos by eye. If they miss the hands, drop experiment 2 and record why.
+
+**Models:** for each new feature set, the frame baseline and the temporal head + centering (Phase 2a.2 settings). Selection across all S3D models (2a.2 and 2a.3) by validation macro-F1 only; T1 and T2 evaluated once afterwards. Same planner metrics as Phase 2a.2.
+
+**On the Jetson,** a wrist crop would mean running a pose model live. Record its cost if it wins; the planned camera may make a fixed crop enough.
+
 ## Phase 2b — Edge pipeline (approved 2026-11-01)
 
 **On the Mac now:**

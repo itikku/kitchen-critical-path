@@ -28,6 +28,8 @@ FEATURE_DIRS = {
     "mnv3_full": "mobilenetv3_large_100",
     "mnv3_crop": "mnv3_crop",
     "s3d_crop": "s3d_crop",
+    "s3d_crop16": "s3d_crop16",  # Phase 2a.3: a clip every 16 frames
+    "s3d_wrist": "s3d_wrist",  # Phase 2a.3: crop around the wrists
 }
 
 
@@ -63,7 +65,7 @@ CONFIGS: tuple[TrainConfig, ...] = (
 # feature set, the frame baseline and run 2's selected configuration.
 CONFIGS_2A2: tuple[TrainConfig, ...] = tuple(
     cfg
-    for features in FEATURE_DIRS
+    for features in ("mnv3_full", "mnv3_crop", "s3d_crop")
     for cfg in (
         TrainConfig(model="frame_linear", features=features),
         TrainConfig(
@@ -71,6 +73,19 @@ CONFIGS_2A2: tuple[TrainConfig, ...] = tuple(
         ),
     )
 )
+
+
+def _pair(features: str) -> tuple[TrainConfig, TrainConfig]:
+    return (
+        TrainConfig(model="frame_linear", features=features),
+        TrainConfig(
+            model="temporal_head", dropout=0.5, weight_decay=0.05, center=True, features=features
+        ),
+    )
+
+
+# Phase 2a.3: the same two configurations on each new feature set.
+CONFIGS_2A3: tuple[TrainConfig, ...] = (*_pair("s3d_crop16"), *_pair("s3d_wrist"))
 
 
 @dataclass
