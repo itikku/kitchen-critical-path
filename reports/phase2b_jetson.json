@@ -1,0 +1,96 @@
+{
+  "date": "2026-11-05",
+  "device": "Jetson Orin Nano Super Developer Kit 8 GB, JetPack 7.2.1, MAXN_SUPER",
+  "software": {
+    "tensorrt": "10.16.2",
+    "cuda": "13.2.2",
+    "cudnn": "9.20.0"
+  },
+  "model": "data/edge/s3d_selected (S3D encoder on motion crops + temporal head, centered)",
+  "method": "trtexec --warmUp=2000 --duration=20, batch 1, random input; latency = host-to-device + GPU compute + device-to-host",
+  "latency_ms": {
+    "encoder": {
+      "fp32": {
+        "p50": 10.9355,
+        "p95": 11.29,
+        "p99": 11.3125,
+        "qps": 92.1466,
+        "build_s": 74.95,
+        "engine_mib": 31
+      },
+      "fp16": {
+        "p50": 7.19971,
+        "p95": 7.21777,
+        "p99": 7.22656,
+        "qps": 143.339,
+        "build_s": 121.39,
+        "engine_mib": 15
+      }
+    },
+    "head": {
+      "fp32": {
+        "p50": 0.182129,
+        "p95": 0.188477,
+        "p99": 0.192383,
+        "qps": 5986.11,
+        "build_s": 14.5,
+        "engine_mib": 2
+      },
+      "fp16": {
+        "p50": 0.102295,
+        "p95": 0.117188,
+        "p99": 0.128906,
+        "qps": 7475.04,
+        "build_s": 21.29,
+        "engine_mib": 1
+      }
+    }
+  },
+  "realtime_budget_ms": 2133.33,
+  "mac_cpu_onnxruntime_p95_ms": {
+    "encoder": 85.69,
+    "head": 0.0865
+  },
+  "tegrastats_during_timing": {
+    "encoder_fp32": {
+      "input_power_mw_median": 18066,
+      "gpu_busy_pct_median": 99,
+      "tj_c_max": 55.97
+    },
+    "encoder_fp16": {
+      "input_power_mw_median": 17362,
+      "gpu_busy_pct_median": 98,
+      "tj_c_max": 56.84
+    },
+    "head_fp32": {
+      "input_power_mw_median": 10069,
+      "gpu_busy_pct_median": 94,
+      "tj_c_max": 55.44
+    },
+    "head_fp16": {
+      "input_power_mw_median": 7517,
+      "gpu_busy_pct_median": 50,
+      "tj_c_max": 54.06
+    },
+    "system_ram_used_mb_max": 3981,
+    "idle_input_power_mw": 5166
+  },
+  "parity": {
+    "video": "P04_webcam01_friedegg",
+    "mac_macro_f1": 0.41668144102670324,
+    "fp32": {
+      "encoder_cosine_min": 0.9999958276748657,
+      "encoder_cosine_mean": 0.9999973624944687,
+      "head_max_abs_prob_diff": 0.0012356042861938477,
+      "head_argmax_agreement": 1.0,
+      "head_macro_f1": 0.41668144102670324
+    },
+    "fp16": {
+      "encoder_cosine_min": 0.9999900460243225,
+      "encoder_cosine_mean": 0.9999926723539829,
+      "head_max_abs_prob_diff": 0.006152719259262085,
+      "head_argmax_agreement": 1.0,
+      "head_macro_f1": 0.41668144102670324
+    }
+  }
+}

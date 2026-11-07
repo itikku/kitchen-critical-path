@@ -85,3 +85,15 @@ def test_interpreter_credits_the_recommended_task_and_asks_to_confirm(frozen: Ta
     assert done.status == "complete" and done.confidence is not None and done.confidence < 0.6
     rec = recommend(frozen, build_state(frozen, events, 541.0), 541.0)
     assert rec.confirm and "cut the firm vegetables" in rec.confirm[0]
+
+
+def test_numpy_macro_f1_matches_sklearn() -> None:
+    from sklearn.metrics import f1_score
+
+    from kcp.edge.parity import macro_f1
+
+    rng = np.random.default_rng(1)
+    y, pred = rng.integers(0, 8, 500), rng.integers(0, 8, 500)
+    pred[:5] = 7  # make sure every class can appear
+    expected = f1_score(y, pred, labels=list(range(8)), average="macro", zero_division=0)
+    assert abs(macro_f1(y, pred, 8) - expected) < 1e-12

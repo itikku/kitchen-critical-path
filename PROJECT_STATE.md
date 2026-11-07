@@ -1,15 +1,15 @@
 # Project State — Kitchen Critical Path
 
-Last updated: 2026-11-01
+Last updated: 2026-11-07
 
 ## Current status
 
-- Phase 0: complete except 0.5 (phone placement, user) and 0.7 (Jetson inventory, blocked). See the table below.
+- Phase 0: complete except 0.5 (phone placement, user). See the table below.
 - **Phase 1: complete.** All acceptance criteria pass (see "Verification").
 - **Phase 2a: complete** (`reports/phase2a.md`). Two runs; run 2 is the result of record.
-- Git: the user asked for the project to be managed as a git repo (2026-11-01). Commits on `main`, local only (no remote yet).
 - **Phase 2a.2: complete** (`reports/phase2a2.md`). Selected model: S3D clips on motion crops + temporal head with causal centering.
-- **Phase 2b: Mac side complete** (streaming, run detector, interpreter, ONNX export, benchmark). **Jetson side blocked:** the Jetson is not set up yet (user, 2026-11-01).
+- **Phase 2b: Mac side complete; Jetson speed and accuracy complete** (`reports/phase2b.md`, 2026-11-05). Open: the full streaming pipeline on a Breakfast video on the Jetson, network off.
+- **Phase 2a.3: design and code committed; feature run paused** (the Mac ran out of memory with two heavy jobs; resume one job at a time when the user says the Mac is free).
 - Public repo: https://github.com/itikku/kitchen-critical-path (pushed 2026-11-01). `HANDOFF.md` and `docs/LEARNING_GUIDE.md` are private, git-ignored, and were removed from the public history.
 
 ## Phase 0 results
@@ -23,7 +23,7 @@ Last updated: 2026-11-01
 | 0.4b 50 Salads | Blocked: official server down; mirror has features only. Substitute: T2. | `docs/data_provenance.md` |
 | 0.5 Phone placement | Open (user). Needed before Phase 3 only. | — |
 | 0.6 Privacy plan | Done. | `docs/privacy.md` |
-| 0.7 Jetson inventory | Blocked until the Jetson setup. | `docs/jetson_inventory.md` |
+| 0.7 Jetson inventory | Done (2026-11-05). JetPack 7.2.1, TensorRT 10.16.2, no PyTorch, no swap, no camera. | `docs/jetson_inventory.md` |
 | 0.8 AI-review design | Approved. | `IMPLEMENTATION_PLAN.md` |
 
 ## Phase 1 results (`reports/phase1.md`)
@@ -54,13 +54,22 @@ Last updated: 2026-11-01
 - Mac CPU, ONNX Runtime: S3D encoder 86 ms p95 + head 0.09 ms per 2.1 s step (4% of real time). `reports/phase2b_mac_benchmark.json`.
 - Exported model: `data/edge/s3d_selected/` (not in git; recreate with `kcp.edge.export`).
 
-## Verification (2026-11-01)
+## Phase 2b on the Jetson (`reports/phase2b.md`)
+
+- TensorRT 10.16.2, MAXN_SUPER. Encoder p95: FP32 11.29 ms, FP16 7.22 ms. Head p95: 0.19 / 0.12 ms.
+- One FP16 step ≈ 7.3 ms = 0.34% of the 2,133 ms budget; ~12× faster than the Mac CPU.
+- Accuracy: all 6,179 T2 predictions match the Mac in FP32 and FP16; macro-F1 0.4167 = Mac. Encoder cosine ≥ 0.99999 on 16 real clips.
+- Back-to-back power: 17–18 W (encoder), 5.2 W idle; max junction 56.8 °C; RAM used ≤ 4.0 GB.
+- ONNX Runtime GPU not installed (TensorRT runs the model; no build verified for JetPack 7.2).
+- Device files: `~/kcp/` on the Jetson (engines, logs, parity pack). Not in git.
+
+## Verification (2026-11-07)
 
 ```text
 uv run ruff format --check .   -> all files formatted
 uv run ruff check .            -> All checks passed
-uv run mypy                    -> no issues in 23 source files
-uv run pytest                  -> 43 passed
+uv run mypy                    -> no issues in 24 source files
+uv run pytest                  -> 44 passed
 ```
 
 ## Implementation notes
@@ -87,9 +96,9 @@ uv run pytest                  -> 43 passed
 
 ## Blockers
 
-- Jetson setup (USB drive + adapter). Affects 0.7 and Phase 2b.
 - 50 Salads server down. Affects only the cross-dataset test.
 
 ## Next step
 
-When the Jetson is set up: copy `data/edge/s3d_selected/` to it, run `python -m kcp.edge.bench` and `trtexec`, and record `reports/phase2b.md`. Optional perception work: hand-based crops; S3D every 16 frames.
+- Jetson: run the full streaming pipeline (decode → crop → encoder → head → run detector → interpreter) on a Breakfast video with the network off; record end-to-end latency per step. Needs a video decoder in a virtual environment on the device.
+- Phase 2a.3 (approved, paused): finish `features-2a3 --no-wrist` (~1 h), then the wrist feasibility gate, then train and evaluate. One heavy job at a time on the Mac.

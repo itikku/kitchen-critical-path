@@ -2,7 +2,7 @@
 
 **Mise en place is a compiler.** A critical-path planner for cooking that watches what has actually happened, tracks dependencies and quality windows, and recommends the next best task.
 
-Target hardware: NVIDIA Jetson Orin Nano Super (8 GB). Current status: the planner and the PyTorch perception model run offline on a Mac, and the edge pipeline exports to ONNX. On-device benchmarks are next.
+Target hardware: NVIDIA Jetson Orin Nano Super (8 GB). Current status: the planner and the PyTorch perception model run offline on a Mac, and the edge pipeline exports to ONNX. On the Jetson, TensorRT runs the model in ~7 ms per 2.1 s step with the same predictions as the Mac.
 
 ## What it does
 
@@ -23,7 +23,7 @@ Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/).
 
 ```sh
 uv sync
-uv run pytest                      # 43 tests
+uv run pytest                      # 44 tests
 uv run kcp replay tests/fixtures/sessions/ip_late_rice.jsonl \
     --graph data/graphs/tofu_stir_fry.instant_pot.v0.json
 uv run kcp simulate --graph data/graphs/tofu_stir_fry.frozen_rice.v0.json --sessions 200
@@ -52,6 +52,7 @@ recipe task graph (dependencies, durations, quality windows) ──┘
 | Action model (8 classes), unseen people / unseen camera | macro-F1 0.40 / 0.42 (first model 0.20 / 0.20; majority 0.09) | `reports/phase2a2.md` |
 | Cutting detection, unseen people / unseen camera | average precision 0.38 / 0.42 (random ≈ 0.10) | `reports/phase2a2.md` |
 | ONNX export and Mac CPU latency | matches PyTorch to 1e-6; 86 ms per 2.1 s step (p95) | `reports/phase2b_mac_benchmark.json` |
+| Jetson Orin Nano Super, TensorRT FP16 | 7.3 ms per 2.1 s step (p95, 0.34% of real time); 100% of 6,179 test predictions match the Mac | `reports/phase2b.md` |
 
 ## Reproduce the perception results
 
