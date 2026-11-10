@@ -23,6 +23,7 @@ import time
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 
@@ -269,6 +270,37 @@ def open_sockets() -> int:
     return n
 
 
+def make_prep(box: list[int]) -> Callable[[np.ndarray], np.ndarray]:
+    """OpenCV BGR frame -> 224x224 RGB crop, resized as in training (Pillow, bilinear)."""
+    import cv2
+    from PIL import Image
+
+    left, top, right, bottom = (int(v) for v in box)
+
+    def prep(bgr: np.ndarray) -> np.ndarray:
+        img = Image.fromarray(cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)).crop((left, top, right, bottom))
+        return np.asarray(img.resize((SIZE, SIZE), Image.Resampling.BILINEAR))
+
+    return prep
+
+
+def load_engines(models: Path, precision: str) -> tuple[TrtModel, TrtModel, dict[str, Any]]:
+    """Load and warm up the encoder and head engines; return them with the head's metadata."""
+    encoder = TrtModel(models / f"encoder.{precision}.engine")
+    head_model = TrtModel(models / f"head.{precision}.engine")
+    head_meta: dict[str, Any] = json.loads((models / "head.json").read_text())
+    for _ in range(5):
+        encoder(np.zeros((1, 3, 8, SIZE, SIZE), np.float32))
+        head_model(np.zeros((1, head_meta["window"], head_meta["dim"]), np.float32))
+    return encoder, head_model, head_meta
+
+
+def new_head(head_model: TrtModel, models: Path, head_meta: dict[str, Any]) -> StreamingHead:
+    return StreamingHead(
+        head_model, np.load(models / "mean.npy"), np.load(models / "std.npy"), head_meta["center"]
+    )
+
+
 def run(
     video: Path,
     meta: dict[str, object],
@@ -279,24 +311,11 @@ def run(
     realtime: bool,
 ) -> dict[str, object]:
     import cv2
-    from PIL import Image
 
     block_network()
-    left, top, right, bottom = (int(v) for v in meta["box"])  # type: ignore[attr-defined]
-
-    def prep(bgr: np.ndarray) -> np.ndarray:
-        img = Image.fromarray(cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)).crop((left, top, right, bottom))
-        return np.asarray(img.resize((SIZE, SIZE), Image.Resampling.BILINEAR))
-
-    encoder = TrtModel(models / f"encoder.{precision}.engine")
-    head_model = TrtModel(models / f"head.{precision}.engine")
-    head_meta = json.loads((models / "head.json").read_text())
-    for _ in range(5):  # warm up both engines before timing
-        encoder(np.zeros((1, 3, 8, SIZE, SIZE), np.float32))
-        head_model(np.zeros((1, head_meta["window"], head_meta["dim"]), np.float32))
-    head = StreamingHead(
-        head_model, np.load(models / "mean.npy"), np.load(models / "std.npy"), head_meta["center"]
-    )
+    prep = make_prep(meta["box"])  # type: ignore[arg-type]
+    encoder, head_model, head_meta = load_engines(models, precision)
+    head = new_head(head_model, models, head_meta)
     planner = Planner(graph, str(meta["video"]), f"{head_meta['run']}+trt-{precision}")
     acc = {"decode_ms": 0.0, "prep_ms": 0.0}
 

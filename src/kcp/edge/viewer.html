@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Kitchen Live</title>
+<style>
+:root { --bg:#111110; --card:#1c1c1a; --ink:#f2f1ec; --ink2:#b9b7ae; --muted:#86847c; --line:#2e2d2a;
+  --cut:#3987e5; --peel:#d95926; --pour:#199e70; --stir:#c98500; --transfer:#d55181; --take_object:#008300;
+  --background:#9085e9; --other:#8f8d85; --warn:#eda100; }
+* { box-sizing:border-box; } body { margin:0; background:var(--bg); color:var(--ink);
+  font:15px/1.5 -apple-system, BlinkMacSystemFont, "Inter", system-ui, sans-serif; }
+main { max-width:1180px; margin:0 auto; padding:20px 16px 40px; }
+header { display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap; margin-bottom:14px; }
+h1 { font-size:20px; margin:0; letter-spacing:-.01em; } .src { color:var(--muted); font-size:13px; }
+.grid { display:grid; grid-template-columns: minmax(0,1.35fr) minmax(0,1fr); gap:14px; }
+@media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+.card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; }
+.video img { width:100%; border-radius:10px; display:block; background:#000; aspect-ratio:4/3; }
+.clock { display:flex; justify-content:space-between; color:var(--ink2); font-size:13px; margin-top:8px; }
+.eyebrow { font-size:11.5px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; }
+.top { font-size:28px; font-weight:800; letter-spacing:-.02em; line-height:1.15; }
+.lag { color:var(--muted); font-size:12.5px; margin:2px 0 12px; }
+.bar { display:grid; grid-template-columns: 150px 1fr 44px; align-items:center; gap:8px; font-size:13px; margin:5px 0; }
+.bar .track { height:8px; background:#2a2926; border-radius:4px; overflow:hidden; }
+.bar .fill { height:100%; border-radius:4px; transition: width .35s ease; }
+.bar .v { text-align:right; color:var(--ink2); font-variant-numeric: tabular-nums; }
+.next { font-size:22px; font-weight:750; line-height:1.25; } .why { color:var(--ink2); margin-top:4px; }
+.ask { margin-top:10px; padding:10px 12px; border-radius:10px; background:#2b2414; border:1px solid #5a4613; color:#f6dfa4; font-weight:600; }
+.hold { color:var(--ink2); font-size:13.5px; margin-top:8px; }
+.events { list-style:none; margin:0; padding:0; font-size:13.5px; }
+.events li { padding:7px 0; border-top:1px solid var(--line); display:flex; gap:10px; }
+.events li:first-child { border-top:0; } .events .t { color:var(--muted); font-variant-numeric: tabular-nums; min-width:44px; }
+.empty { color:var(--muted); font-size:13.5px; }
+.stack { display:grid; gap:14px; align-content:start; }
+footer { color:var(--muted); font-size:12.5px; margin-top:16px; }
+</style></head><body><main>
+<header><h1>Kitchen Critical Path · live on the Jetson</h1><span class="src" id="src">connecting…</span></header>
+<div class="grid">
+  <div class="stack">
+    <div class="card video"><img id="video" src="/stream.mjpg" alt="Live video from the Jetson">
+      <div class="clock"><span>Video time <b id="now">–</b></span><span>Yellow box: the area the model looks at</span></div></div>
+    <div class="card"><div class="eyebrow">Camera events sent to the planner</div><ul class="events" id="events"></ul></div>
+  </div>
+  <div class="stack">
+    <div class="card"><div class="eyebrow">What the model sees</div>
+      <div class="top" id="top">Waiting for the first answer…</div>
+      <div class="lag" id="lag">The model needs about 7 seconds of video before its first answer.</div>
+      <div id="bars"></div></div>
+    <div class="card"><div class="eyebrow">Next step</div>
+      <div class="next" id="next">–</div><div class="why" id="why"></div>
+      <div id="asks"></div><div id="holds"></div>
+      <div class="hold" id="eta"></div></div>
+  </div>
+</div>
+<footer>Everything runs on the Jetson. Video and answers stay on your network; nothing is uploaded.</footer>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let bars = null;
+function render(s) {
+  $("src").textContent = "Source: " + s.source;
+  $("now").textContent = s.now;
+  if (s.model) {
+    $("top").textContent = s.model.top;
+    $("lag").textContent = "Answer for " + s.model.at + " (" + s.model.lag_s + " s ago: the model waits for a little more video before it answers).";
+    if (!bars) {
+      $("bars").innerHTML = s.model.scores.map((c) =>
+        `<div class="bar"><span>${esc(c.name)}</span><div class="track"><div class="fill" id="f-${c.key}" style="background:var(--${c.key})"></div></div><span class="v" id="v-${c.key}"></span></div>`).join("");
+      bars = true;
+    }
+    for (const c of s.model.scores) {
+      $("f-" + c.key).style.width = (c.p * 100).toFixed(1) + "%";
+      $("v-" + c.key).textContent = Math.round(c.p * 100) + "%";
+    }
+  }
+  $("next").textContent = s.next.task || "Nothing to do right now";
+  $("why").textContent = s.next.reason || "";
+  $("asks").innerHTML = s.confirm.map((q) => `<div class="ask">${esc(q)}</div>`).join("");
+  $("holds").innerHTML = s.waiting.slice(0, 2).map(([t, why]) => `<div class="hold">Hold: ${esc(t)} — ${esc(why)}</div>`).join("");
+  $("eta").textContent = "Food on the plate at about " + s.plate_eta + ".";
+  $("events").innerHTML = s.events.length
+    ? s.events.map((e) => `<li><span class="t">${e.t}</span><span>${e.status === "started" ? "Started" : "Finished?"} <b>${esc(e.task)}</b></span></li>`).join("")
+    : '<li class="empty">No events yet. The planner hears about cutting after about 20 seconds of it.</li>';
+}
+let lost = false;
+function restartVideo() { $("video").src = "/stream.mjpg?t=" + Date.now(); }
+$("video").addEventListener("error", () => setTimeout(restartVideo, 1000));
+async function poll() {
+  try {
+    const r = await fetch("/state", {cache: "no-store"}); const s = await r.json();
+    if (lost) { lost = false; restartVideo(); }  // the stream does not resume by itself
+    if (s.now) render(s);
+  } catch (e) { lost = true; $("src").textContent = "Connection lost. Retrying…"; }
+  setTimeout(poll, 500);
+}
+poll();
+</script></body></html>

@@ -134,3 +134,16 @@ def test_planner_turns_a_cutting_stretch_into_task_events(frozen: TaskGraph) -> 
     statuses = [(e.task_id.startswith("cut"), e.status) for e in planner.events]
     assert statuses == [(True, "started"), (True, "complete")]
     assert planner.events[1].confidence is not None and planner.events[1].confidence < 0.6
+
+
+def test_viewer_snapshot_reports_model_and_planner(frozen: TaskGraph) -> None:
+    from kcp.edge.e2e import CUT, Planner
+    from kcp.edge.viewer import snapshot
+
+    planner = Planner(frozen, "s", "test-model")
+    probs = np.full(8, 0.02)
+    probs[CUT] = 0.86
+    s = snapshot(planner, 30.0, 23.1, probs, "video.avi")
+    assert s["model"]["top"] == "Cutting" and s["model"]["lag_s"] == 6.9
+    assert s["next"]["task"] and s["events"] == [] and s["now"] == "00:30"
+    assert snapshot(planner, 1.0, None, None, "video.avi")["model"] is None
