@@ -71,13 +71,21 @@ Last updated: 2026-11-09
 - Python network calls blocked during the run; Wi-Fi stayed on (nmcli needs root over SSH).
 - Results: `reports/phase2b_e2e.json`, `reports/phase2b_e2e_transcript.txt`. Local outputs: `data/edge/e2e/` (git-ignored, includes the video).
 
+## Live viewer and camera (2026-11-09)
+
+- `src/kcp/edge/viewer.py` (+ `viewer.html`): runs the pipeline on the Jetson and serves a page on 127.0.0.1:8090 — the video with the crop box, the 8 action scores, the planner's next step and prompts, and the camera events. Watch on the Mac with `scripts/viewer_tunnel.sh` (SSH port forward that reconnects), then http://localhost:8090.
+- Start on the Jetson: `PYTHONPATH=src:pylib python3 -m kcp.edge.viewer e2e edge/s3d_selected graphs/tofu_stir_fry.instant_pot.v0.json` (loops the recorded video), or add `--source 0 --rotate 90` for the camera. Stop with `kill $(cat e2e/viewer.pid)` when started with a PID file.
+- Camera: InnoMaker U20CAM-1080P = `/dev/video0` (UVC, MJPEG). Captured at 640×480 (~17 fps), thinned to 15 fps. Default crop: centered square until `--box` is set.
+- First desk test: the model answered "Stirring 100%" on a close, low, backlit view with the hand at the frame edge. Cause: a view unlike the training data, not a bug. Fix the framing first (see "Next step").
+- **Network:** the Jetson's Wi-Fi is too weak for video (−69 dBm, 6 Mbit/s send, 40–85% packet loss; turning off Wi-Fi power saving did not help). Use the USB-C cable: `ssh jetson-usb` (192.168.55.1; 0% loss, 0.8 ms). This needed a fix in NVIDIA's `/opt/nvidia/l4t-usb-device-mode/nv-l4t-usb-device-mode-start.sh` line 304 (`usb0` → `usb1` for NCM, the interface macOS uses); a JetPack update may undo it.
+
 ## Verification (2026-11-09)
 
 ```text
 uv run ruff format --check .   -> all files formatted
 uv run ruff check .            -> All checks passed
-uv run mypy                    -> no issues in 25 source files
-uv run pytest                  -> 50 passed
+uv run mypy                    -> no issues in 26 source files
+uv run pytest                  -> 51 passed
 ```
 
 ## Implementation notes
@@ -108,6 +116,6 @@ uv run pytest                  -> 50 passed
 
 ## Next step
 
-- Optional: Wi-Fi-off end-to-end run (`ssh -t jetson 'sudo -v && sudo -b setsid bash ~/kcp/scripts/jetson_offline_run.sh'`; results in `~/kcp/e2e/offline.log` and `out_offline/`).
-- Camera: InnoMaker U20CAM-1080P (USB 2.0, UVC) on the Jetson; frame the prep zone (no faces); add a camera input to `e2e.py`; record the 2-minute test clip (step 0.5).
+- Camera setup (paused by the user): raise the camera ~1 m back, frame from the shoulders down with the board centered, room light on, lamp out of frame. Then set the crop box from a short clip of hand motion (`--box`), test real cutting live, and record the 2-minute test clip (step 0.5).
+- Optional, skipped for now: Wi-Fi-off end-to-end run (`scripts/jetson_offline_run.sh`, needs the user's sudo).
 - Phase 2a.3 (approved, paused): finish `features-2a3 --no-wrist` (~1 h), then the wrist feasibility gate, then train and evaluate. One heavy job at a time on the Mac.

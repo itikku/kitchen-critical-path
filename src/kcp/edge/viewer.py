@@ -115,34 +115,56 @@ def snapshot(
     return out
 
 
+def center_square(width: int, height: int) -> list[int]:
+    """The largest centered square: the default crop until the camera's box is set."""
+    side = min(width, height)
+    left, top = (width - side) // 2, (height - side) // 2
+    return [left, top, left + side, top + side]
+
+
 def run_session(
-    source: str, box: list[int], models: Path, graph: TaskGraph, precision: str, shared: Shared,
-    engines: tuple[Any, Any, dict[str, Any]],
+    source: str, box: list[int] | None, models: Path, graph: TaskGraph, precision: str,
+    shared: Shared, engines: tuple[Any, Any, dict[str, Any]], rotate: int = 0,
 ) -> None:  # fmt: skip
     """One pass through the source: pipeline, plus a frame and a state update for the page."""
     import cv2
 
+    turn = {90: cv2.ROTATE_90_CLOCKWISE, 180: cv2.ROTATE_180, 270: cv2.ROTATE_90_COUNTERCLOCKWISE}
     encoder, head_model, head_meta = engines
-    prep = make_prep(box)
-    asm = ClipAssembler(prep)
     head = new_head(head_model, models, head_meta)
     planner = Planner(graph, "viewer", f"{head_meta['run']}+trt-{precision}")
     camera = source.isdigit()
-    cap = cv2.VideoCapture(int(source) if camera else source)
+    cap = cv2.VideoCapture(int(source), cv2.CAP_V4L2) if camera else cv2.VideoCapture(source)
+    if camera:
+        cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG"))
+        cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+        cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+    asm: ClipAssembler | None = None
     anchors: list[int] = []
     last: tuple[float, np.ndarray] | None = None
     label = f"camera {source}" if camera else Path(source).name
-    start = time.perf_counter()
+    start = next_t = time.perf_counter()
     i = 0
     while True:
-        if not camera:  # a file plays at camera speed; a camera paces itself
+        if not camera:  # a file plays at camera speed
             time.sleep(max(0.0, start + i / FPS - time.perf_counter()))
         ok, frame = cap.read()
         if not ok:
             break
+        if camera:  # the camera runs faster than 15 fps: keep one frame per 1/15 s slot
+            now = time.perf_counter()
+            if now < next_t:
+                continue
+            next_t = max(next_t + 1 / FPS, now - 1 / FPS)
+        if rotate:
+            frame = cv2.rotate(frame, turn[rotate])
+        if asm is None:
+            box = box or center_square(frame.shape[1], frame.shape[0])
+            asm = ClipAssembler(make_prep(box))
+        assert box is not None
         shown = frame.copy()
-        cv2.rectangle(shown, (box[0], box[1]), (box[2] - 1, box[3] - 1), (0, 200, 255), 1)
-        # Native size and modest quality keep the stream ~150 KB/s; the browser scales it up.
+        cv2.rectangle(shown, (box[0], box[1]), (box[2] - 1, box[3] - 1), (0, 200, 255), 2)
+        # Modest JPEG quality keeps the stream small; the browser scales the image.
         shared.put_frame(cv2.imencode(".jpg", shown, [cv2.IMWRITE_JPEG_QUALITY, 75])[1].tobytes())
         for a, _, clip in asm.push(i, frame):
             anchors.append(a)
@@ -213,6 +235,8 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--precision", default="fp16", choices=["fp16", "fp32"])
     parser.add_argument("--port", type=int, default=8090)
     parser.add_argument("--once", action="store_true", help="play a file once instead of looping")
+    parser.add_argument("--rotate", type=int, default=0, choices=[0, 90, 180, 270])
+    parser.add_argument("--box", help="crop box left,top,right,bottom (camera default: center)")
     args = parser.parse_args(argv)
     meta = json.loads((args.pack / "meta.json").read_text())
     source = args.source or str(args.pack / "video.avi")
@@ -224,7 +248,10 @@ def main(argv: list[str] | None = None) -> None:
     engines = load_engines(args.models, args.precision)  # TensorRT stays on this thread
     graph = TaskGraph.load(args.graph)
     while True:
-        run_session(source, meta["box"], args.models, graph, args.precision, shared, engines)
+        box = [int(v) for v in args.box.split(",")] if args.box else None
+        if box is None and not source.isdigit():
+            box = meta["box"]  # the recorded video's training crop
+        run_session(source, box, args.models, graph, args.precision, shared, engines, args.rotate)
         if args.once or source.isdigit():
             break
     server.shutdown()

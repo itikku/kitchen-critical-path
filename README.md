@@ -25,7 +25,7 @@ Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/).
 
 ```sh
 uv sync
-uv run pytest                      # 50 tests
+uv run pytest                      # 51 tests
 uv run kcp replay tests/fixtures/sessions/ip_late_rice.jsonl \
     --graph data/graphs/tofu_stir_fry.instant_pot.v0.json
 uv run kcp simulate --graph data/graphs/tofu_stir_fry.frozen_rice.v0.json --sessions 200
@@ -43,7 +43,7 @@ recipe task graph (dependencies, durations, quality windows) ──┘
 
 **Perception** (`src/kcp/perception/`): each video is cropped to where motion happens; a frozen, Kinetics-pretrained S3D video encoder turns 8-frame clips into embeddings, computed once; a small PyTorch temporal head (0.66M parameters) classifies 8-step windows into 8 prep-zone actions (cut, peel, pour, stir, transfer, take object, background, other). It trains on [Breakfast Actions](https://serre.lab.brown.edu/breakfast-actions-dataset.html) (CC BY 4.0).
 
-**Edge** (`src/kcp/edge/`): a NumPy-only streaming head that matches the offline evaluation (tested), a run detector, an interpreter that turns actions into task events and asks the cook to confirm completions, ONNX export with parity checks, and the end-to-end pipeline (`e2e.py`): OpenCV decoding, TensorRT FP16 for both models, and the planner, with no PyTorch on the device.
+**Edge** (`src/kcp/edge/`): a NumPy-only streaming head that matches the offline evaluation (tested), a run detector, an interpreter that turns actions into task events and asks the cook to confirm completions, ONNX export with parity checks, and the end-to-end pipeline (`e2e.py`): OpenCV decoding, TensorRT FP16 for both models, and the planner, with no PyTorch on the device. A live viewer (`viewer.py`) shows the video, the model's scores, and the planner's next step in a browser, from a recorded video or a USB camera.
 
 ## Results so far
 
