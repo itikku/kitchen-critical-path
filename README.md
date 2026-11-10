@@ -4,6 +4,8 @@
 
 Target hardware: NVIDIA Jetson Orin Nano Super (8 GB). Current status: the full pipeline — video in, planner recommendations out — runs on the Jetson in real time from a recorded video, with the same answers as the Mac. A live camera and the developer's own kitchen come next.
 
+**New to video models?** Read the [visual explainer](https://itikku.github.io/kitchen-critical-path/how_it_works.html): how the model was trained, packaged, and tested on the Jetson, with pictures.
+
 ## What it does
 
 Given a structured recipe and the events of a cooking session, the planner tells you what to do next and why:
@@ -87,4 +89,4 @@ tests/              unit tests, fixtures, golden replays
 
 ## Data and citation
 
-Breakfast Actions: H. Kuehne, A. B. Arslan, T. Serre, "The Language of Actions: Recovering the Syntax and Semantics of Goal-Directed Human Activities," CVPR 2014. No video is stored in this repository. See `docs/data_provenance.md`.
+Breakfast Actions: H. Kuehne, A. B. Arslan, T. Serre, "The Language of Actions: Recovering the Syntax and Semantics of Goal-Directed Human Activities," CVPR 2014. No video is stored in this repository; the visual explainer shows 26 still frames from the dataset. See `docs/data_provenance.md`.

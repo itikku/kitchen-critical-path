@@ -50,5 +50,6 @@ Citation:
 ## Rules
 
 - Never commit, mirror, or redistribute video.
+- Exception, approved by the user on 2026-11-09: `docs/how_it_works.html` (the visual explainer) shows 26 still frames from Breakfast Actions at 320×240 or smaller, with the citation, under the CC BY 4.0 license on the dataset card. No video is committed.
 - Keep the citation in the README and in any published result.
 - Record every new download here with its source, size, and checksum.
