@@ -1,6 +1,6 @@
 # Project State — Kitchen Critical Path
 
-Last updated: 2026-11-07
+Last updated: 2026-11-09
 
 ## Current status
 
@@ -8,7 +8,7 @@ Last updated: 2026-11-07
 - **Phase 1: complete.** All acceptance criteria pass (see "Verification").
 - **Phase 2a: complete** (`reports/phase2a.md`). Two runs; run 2 is the result of record.
 - **Phase 2a.2: complete** (`reports/phase2a2.md`). Selected model: S3D clips on motion crops + temporal head with causal centering.
-- **Phase 2b: Mac side complete; Jetson speed and accuracy complete** (`reports/phase2b.md`, 2026-11-05). Open: the full streaming pipeline on a Breakfast video on the Jetson, network off.
+- **Phase 2b: complete** (`reports/phase2b.md`). Jetson speed and accuracy 2026-11-05; end-to-end pipeline on the Jetson 2026-11-09. Optional: a Wi-Fi-off run (`scripts/jetson_offline_run.sh`, needs the user's sudo).
 - **Phase 2a.3: design and code committed; feature run paused** (the Mac ran out of memory with two heavy jobs; resume one job at a time when the user says the Mac is free).
 - Public repo: https://github.com/itikku/kitchen-critical-path (pushed 2026-11-01). `HANDOFF.md` and `docs/LEARNING_GUIDE.md` are private, git-ignored, and were removed from the public history.
 
@@ -61,15 +61,23 @@ Last updated: 2026-11-07
 - Accuracy: all 6,179 T2 predictions match the Mac in FP32 and FP16; macro-F1 0.4167 = Mac. Encoder cosine ≥ 0.99999 on 16 real clips.
 - Back-to-back power: 17–18 W (encoder), 5.2 W idle; max junction 56.8 °C; RAM used ≤ 4.0 GB.
 - ONNX Runtime GPU not installed (TensorRT runs the model; no build verified for JetPack 7.2).
-- Device files: `~/kcp/` on the Jetson (engines, logs, parity pack). Not in git.
+- Device files: `~/kcp/` on the Jetson (engines, logs, parity pack, `src/` and `pylib/` copies, `e2e/`). Not in git.
 
-## Verification (2026-11-07)
+## Phase 2b end to end on the Jetson (2026-11-09)
+
+- `src/kcp/edge/e2e.py`: OpenCV decode → fixed crop → Pillow resize → S3D (TensorRT FP16) → streaming head (TensorRT FP16) → run detectors → interpreter → scheduler. Device needs only JetPack Python + pydantic files in `~/kcp/pylib` (`uv pip install --target ... --python-platform aarch64-manylinux_2_28 --python-version 3.12`).
+- Video `P07_webcam01_salat` (T2). 104/104 steps same top class as the Mac reference; 4/4 task events identical; encoder cosine ≥ 0.9990.
+- Paced at 15 fps: kept up (221.8 s for 221.9 s); 92 ms per step p95 (4.3%); +0.07 W over idle (4.66 vs 4.59 W); 784 MB peak RSS; 48 °C.
+- Python network calls blocked during the run; Wi-Fi stayed on (nmcli needs root over SSH).
+- Results: `reports/phase2b_e2e.json`, `reports/phase2b_e2e_transcript.txt`. Local outputs: `data/edge/e2e/` (git-ignored, includes the video).
+
+## Verification (2026-11-09)
 
 ```text
 uv run ruff format --check .   -> all files formatted
 uv run ruff check .            -> All checks passed
-uv run mypy                    -> no issues in 24 source files
-uv run pytest                  -> 44 passed
+uv run mypy                    -> no issues in 25 source files
+uv run pytest                  -> 50 passed
 ```
 
 ## Implementation notes
@@ -100,5 +108,6 @@ uv run pytest                  -> 44 passed
 
 ## Next step
 
-- Jetson: run the full streaming pipeline (decode → crop → encoder → head → run detector → interpreter) on a Breakfast video with the network off; record end-to-end latency per step. Needs a video decoder in a virtual environment on the device.
+- Optional: Wi-Fi-off end-to-end run (`ssh -t jetson 'sudo -v && sudo -b setsid bash ~/kcp/scripts/jetson_offline_run.sh'`; results in `~/kcp/e2e/offline.log` and `out_offline/`).
+- Camera: InnoMaker U20CAM-1080P (USB 2.0, UVC) on the Jetson; frame the prep zone (no faces); add a camera input to `e2e.py`; record the 2-minute test clip (step 0.5).
 - Phase 2a.3 (approved, paused): finish `features-2a3 --no-wrist` (~1 h), then the wrist feasibility gate, then train and evaluate. One heavy job at a time on the Mac.

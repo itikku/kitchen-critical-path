@@ -1,0 +1,26 @@
+Replay: Tofu-vegetable stir-fry with Instant Pot rice [tofu_stir_fry.instant_pot.v0]
+
+[00:00] session start
+        next: Press the tofu — Start it now: it runs by itself for 20 min while you do other work.
+        hold: Cut the tomato — wait: start when 'plate the food' is ~25 min away (now ~45 min)
+        plate ≈ 47:00 · bottleneck: your hands (45 min of active work left)
+[01:06] started 'Cut the firm vegetables (carrot, broccoli, Chinese broccoli stems, onion)' (student, confidence 0.85)
+        next: Press the tofu — Start it now: it runs by itself for 20 min while you do other work.
+        hold: Cut the tomato — wait: start when 'plate the food' is ~25 min away (now ~45 min)
+        plate ≈ 48:06 · bottleneck: your hands (45 min of active work left)
+[02:44] complete 'Cut the firm vegetables (carrot, broccoli, Chinese broccoli stems, onion)' (student, confidence 0.50)
+        next: Press the tofu — Start it now: it runs by itself for 20 min while you do other work.
+        hold: Cut the tomato — wait: start when 'plate the food' is ~25 min away (now ~45 min)
+        ? confirm: Is 'cut the firm vegetables (carrot, broccoli, chinese broccoli stems, onion)' done?
+        plate ≈ 49:44 · bottleneck: your hands (45 min of active work left)
+[03:06] started 'Cut the garlic' (student, confidence 0.83)
+        next: Press the tofu — Start it now: it runs by itself for 20 min while you do other work.
+        hold: Cut the tomato — wait: start when 'plate the food' is ~25 min away (now ~45 min)
+        ? confirm: Is 'cut the firm vegetables (carrot, broccoli, chinese broccoli stems, onion)' done?
+        plate ≈ 50:06 · bottleneck: your hands (45 min of active work left)
+[03:40] complete 'Cut the garlic' (student, confidence 0.50)
+        next: Press the tofu — Start it now: it runs by itself for 20 min while you do other work.
+        hold: Cut the tomato — wait: start when 'plate the food' is ~25 min away (now ~45 min)
+        ? confirm: Is 'cut the garlic' done?
+        ? confirm: Is 'cut the firm vegetables (carrot, broccoli, chinese broccoli stems, onion)' done?
+        plate ≈ 50:40 · bottleneck: your hands (45 min of active work left)

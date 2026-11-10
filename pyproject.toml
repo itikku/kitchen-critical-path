@@ -38,7 +38,7 @@ packages = ["kcp"]
 mypy_path = "src"
 
 [[tool.mypy.overrides]]
-module = ["av", "av.*", "timm", "timm.*", "sklearn", "sklearn.*", "torchvision", "torchvision.*", "onnxruntime", "onnxruntime.*"]
+module = ["av", "av.*", "timm", "timm.*", "sklearn", "sklearn.*", "torchvision", "torchvision.*", "onnxruntime", "onnxruntime.*", "tensorrt", "cv2"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]

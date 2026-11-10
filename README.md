@@ -2,7 +2,7 @@
 
 **Mise en place is a compiler.** A critical-path planner for cooking that watches what has actually happened, tracks dependencies and quality windows, and recommends the next best task.
 
-Target hardware: NVIDIA Jetson Orin Nano Super (8 GB). Current status: the planner and the PyTorch perception model run offline on a Mac, and the edge pipeline exports to ONNX. On the Jetson, TensorRT runs the model in ~7 ms per 2.1 s step with the same predictions as the Mac.
+Target hardware: NVIDIA Jetson Orin Nano Super (8 GB). Current status: the full pipeline — video in, planner recommendations out — runs on the Jetson in real time from a recorded video, with the same answers as the Mac. A live camera and the developer's own kitchen come next.
 
 ## What it does
 
@@ -23,7 +23,7 @@ Requires Python 3.11+ and [uv](https://docs.astral.sh/uv/).
 
 ```sh
 uv sync
-uv run pytest                      # 44 tests
+uv run pytest                      # 50 tests
 uv run kcp replay tests/fixtures/sessions/ip_late_rice.jsonl \
     --graph data/graphs/tofu_stir_fry.instant_pot.v0.json
 uv run kcp simulate --graph data/graphs/tofu_stir_fry.frozen_rice.v0.json --sessions 200
@@ -41,7 +41,7 @@ recipe task graph (dependencies, durations, quality windows) ──┘
 
 **Perception** (`src/kcp/perception/`): each video is cropped to where motion happens; a frozen, Kinetics-pretrained S3D video encoder turns 8-frame clips into embeddings, computed once; a small PyTorch temporal head (0.66M parameters) classifies 8-step windows into 8 prep-zone actions (cut, peel, pour, stir, transfer, take object, background, other). It trains on [Breakfast Actions](https://serre.lab.brown.edu/breakfast-actions-dataset.html) (CC BY 4.0).
 
-**Edge** (`src/kcp/edge/`): a NumPy-only streaming head that matches the offline evaluation (tested), a run detector, an interpreter that turns actions into task events and asks the cook to confirm completions, ONNX export with parity checks, and an ONNX Runtime benchmark.
+**Edge** (`src/kcp/edge/`): a NumPy-only streaming head that matches the offline evaluation (tested), a run detector, an interpreter that turns actions into task events and asks the cook to confirm completions, ONNX export with parity checks, and the end-to-end pipeline (`e2e.py`): OpenCV decoding, TensorRT FP16 for both models, and the planner, with no PyTorch on the device.
 
 ## Results so far
 
@@ -52,7 +52,8 @@ recipe task graph (dependencies, durations, quality windows) ──┘
 | Action model (8 classes), unseen people / unseen camera | macro-F1 0.40 / 0.42 (first model 0.20 / 0.20; majority 0.09) | `reports/phase2a2.md` |
 | Cutting detection, unseen people / unseen camera | average precision 0.38 / 0.42 (random ≈ 0.10) | `reports/phase2a2.md` |
 | ONNX export and Mac CPU latency | matches PyTorch to 1e-6; 86 ms per 2.1 s step (p95) | `reports/phase2b_mac_benchmark.json` |
-| Jetson Orin Nano Super, TensorRT FP16 | 7.3 ms per 2.1 s step (p95, 0.34% of real time); 100% of 6,179 test predictions match the Mac | `reports/phase2b.md` |
+| Jetson Orin Nano Super, TensorRT FP16, model only | 7.3 ms per 2.1 s step (p95, 0.34% of real time); 100% of 6,179 test predictions match the Mac | `reports/phase2b.md` |
+| Jetson, end to end (video → planner), paced at 15 fps | 92 ms per 2.1 s step (p95, 4.3%); +0.07 W over idle; 104/104 steps and 4/4 task events match the Mac | `reports/phase2b.md` |
 
 ## Reproduce the perception results
 

@@ -97,3 +97,40 @@ def test_numpy_macro_f1_matches_sklearn() -> None:
     pred[:5] = 7  # make sure every class can appear
     expected = f1_score(y, pred, labels=list(range(8)), average="macro", zero_division=0)
     assert abs(macro_f1(y, pred, 8) - expected) < 1e-12
+
+
+def test_e2e_constants_match_training() -> None:
+    from kcp.edge import e2e
+    from kcp.perception import features as F
+
+    assert (e2e.SIZE, e2e.CLIP_STRIDE, e2e.CLIP_OFFSETS) == (F.SIZE, F.CLIP_STRIDE, F.CLIP_OFFSETS)
+
+
+@pytest.mark.parametrize("n", [5, 100, 129, 3329])
+def test_clip_assembler_uses_the_training_frames(n: int) -> None:
+    """Live clips use the same frame indices as the training cache, including at both edges."""
+    from kcp.edge.e2e import CLIP_OFFSETS, CLIP_STRIDE, ClipAssembler
+
+    asm = ClipAssembler(lambda f: f)  # a "frame" is its own index, so clips show which frames
+    clips = [c for i in range(n) for c in asm.push(i, np.array([i]))] + asm.flush()
+    expected = {
+        a: [min(max(a + k, 0), n - 1) for k in CLIP_OFFSETS] for a in range(0, n, CLIP_STRIDE)
+    }
+    assert [a for a, _, _ in clips] == list(expected)
+    for a, now, clip in clips:
+        assert clip.ravel().tolist() == expected[a]
+        assert now == min(a + CLIP_OFFSETS[-1], n - 1)  # answered as soon as its last frame arrives
+
+
+def test_planner_turns_a_cutting_stretch_into_task_events(frozen: TaskGraph) -> None:
+    from kcp.edge.e2e import CLIP_STRIDE, CUT, FPS, Planner
+
+    planner = Planner(frozen, "s", "test-model")
+    step_s = CLIP_STRIDE / FPS
+    for s in range(40):
+        p = np.full(8, 0.01)
+        p[CUT] = 0.9 if 5 <= s < 25 else 0.01
+        planner.push(s * step_s, p, s * step_s)
+    statuses = [(e.task_id.startswith("cut"), e.status) for e in planner.events]
+    assert statuses == [(True, "started"), (True, "complete")]
+    assert planner.events[1].confidence is not None and planner.events[1].confidence < 0.6

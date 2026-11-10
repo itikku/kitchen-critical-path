@@ -1,11 +1,12 @@
 # Phase 2b — Edge Pipeline on the Jetson
 
-Date: 2026-11-05. Raw numbers: `reports/phase2b_jetson.json`. Mac baseline: `reports/phase2b_mac_benchmark.json`. Device: `docs/jetson_inventory.md`. Design: `IMPLEMENTATION_PLAN.md`, "Phase 2b".
+Date: 2026-11-05; end-to-end run 2026-11-09. Raw numbers: `reports/phase2b_jetson.json` and `reports/phase2b_e2e.json`. Mac baseline: `reports/phase2b_mac_benchmark.json`. Device: `docs/jetson_inventory.md`. Design: `IMPLEMENTATION_PLAN.md`, "Phase 2b".
 
 ## Questions
 
 1. Is the selected perception model (S3D encoder on motion crops + temporal head) fast enough on a Jetson Orin Nano Super for live use?
 2. Does it give the same answers on the Jetson as on the Mac, at full (FP32) and half (FP16) precision?
+3. Does the whole pipeline — video in, planner recommendations out — run on the Jetson in real time, and give the same task events as the Mac?
 
 ## Method
 
@@ -68,12 +69,67 @@ Date: 2026-11-05. Raw numbers: `reports/phase2b_jetson.json`. Mac baseline: `rep
 - **PyTorch is not needed on the device.** The model ships as ONNX; TensorRT compiles it. The on-device check needs only NumPy and `trtexec`, both present in JetPack.
 - ONNX Runtime with the GPU was not installed. TensorRT already runs the model directly. Installing it would first need a build verified for JetPack 7.2 / CUDA 13.2 / Python 3.12 on NVIDIA's current pages. It stays optional.
 
+## End-to-end run on the device (2026-11-09)
+
+**Pipeline** (`src/kcp/edge/e2e.py`), all on the Jetson:
+
+```text
+video file (OpenCV) -> fixed crop -> 224x224 (Pillow) -> 8-frame clip every 32 frames
+  -> S3D encoder (TensorRT FP16) -> streaming head (TensorRT FP16, causal centering)
+  -> cut / mix run detectors -> interpreter -> scheduler -> recommendations
+```
+
+- **Video:** `P07_webcam01_salat`, a T2 video (people and camera never used in training), 3 min 42 s, 104 steps. Its accuracy (52.9%) is typical of T2 (58.8% overall).
+- **Software on the device:** JetPack's own Python 3.12, NumPy, OpenCV 4.8, Pillow, and TensorRT 10.16 Python bindings, plus pydantic for the scheduler (copied as files; nothing installed system-wide). No PyTorch, no ONNX Runtime, no virtual environment, no sudo.
+- **Crop:** the same fixed box as in training. With a live camera, the box is set once when the camera is framed.
+- **Reference:** the Mac runs the same downstream code (`e2e reference`) on the cached training embeddings with the ONNX head. `e2e compare` checks the two step by step.
+- **Two runs:** as fast as possible, and paced at 15 fps like a live camera (`--realtime`), with `tegrastats` logging.
+
+### Results
+
+| Check | Value |
+|---|---:|
+| Steps with the same top class as the Mac | **104 / 104** |
+| Task events the same as the Mac (task, status, time) | **4 / 4** |
+| Encoder cosine similarity vs. training embeddings (worst / median) | 0.9990 / 0.99977 |
+| Largest probability difference vs. Mac | 0.054 |
+| Paced run: wall time for 221.9 s of video | 221.8 s (kept up) |
+| Paced run: compute per step, p50 / p95 / max | 90 / 92 / 93 ms (4.3% of the 2,133 ms budget at p95) |
+| Fast run: whole video | 6.7 s (33× real time); 80 ms per step at p95 |
+| Average input power, paced run vs. idle | **4.66 W vs. 4.59 W (+0.07 W)** |
+| Peak process memory | 784 MB; system RAM ≤ 2.9 of 7.3 GB |
+| Max junction temperature | 48 °C |
+| Python network calls | blocked by the run; 0 sockets open at the end |
+
+**Per-step time in the paced run (p50):** decode 20 ms (32 frames) · crop and resize 22 ms · encoder 46 ms · head 1.5 ms · detectors and planner 0.1 ms.
+
+**What the planner did:** the video has two real cutting periods (66–143 s and 186–211 s). The pipeline reported both:
+
+| Event | Reported at | Dated to | True |
+|---|---:|---:|---:|
+| started "Cut the firm vegetables" | 94.3 s | 66.1 s | 66.1 s |
+| complete "Cut the firm vegetables" (asks to confirm) | 171.1 s | 164.3 s | 143.0 s |
+| started "Cut the garlic" | 213.8 s | 185.6 s | 185.6 s |
+| complete "Cut the garlic" (asks to confirm) | 220.2 s | 219.7 s | 211.2 s |
+
+The full planner transcript is in `reports/phase2b_e2e_transcript.txt`.
+
+### What this means
+
+- **The whole pipeline runs on the device in real time, with large headroom:** 92 ms per 2.1 s step, and it adds ~0.07 W on average. The earlier estimate ("well under 0.1 W") is now measured.
+- **The live path gives the training path's answers.** OpenCV decoding, Pillow resizing, and TensorRT FP16 together move probabilities by up to 0.054 — more than FP16 alone (0.006), probably because OpenCV and PyAV decode and convert colors slightly differently (not tested) — but no step and no event changed.
+- **Delay:** a start is reported ~28 s after it begins: 20 s minimum run, plus the head's 3-step look-ahead and the clip's last frames (6.9 s). Ends are dated 9–21 s after the true end and reported 9–28 s after it, mostly from the 16 s smoothing. For a planner that works in minutes, the starts are on time; the late ends cost one confirmation prompt each.
+- **Per-step time is 9–13× the `trtexec` model time**, for two reasons: (1) decoding, cropping, resizing, and normalization run on the CPU (~50 ms; the encoder stage above includes ~10 ms of normalization); (2) the GPU lowers its clock between steps: measured alone, one encoder run every 2.1 s takes ~23 ms instead of 9 ms back to back. `sudo jetson_clocks` would fix (2) at a higher idle power. It is not needed: the budget is 23× the cost.
+
 ## Limits and what is still open
 
-- `trtexec` times the model only. It does not include video decoding, the motion crop, resizing, or Python overhead. Those run once per step on the CPU and are not yet measured on the device.
+- `trtexec` times the model only. The end-to-end run above adds decoding, cropping, resizing, and Python.
 - The speed runs use random inputs. Latency does not depend on the input values for this model; the accuracy check uses real inputs.
 - The encoder check covers 16 clips from one video. The head check covers every T2 step.
-- **Still open from the plan:** run the full streaming pipeline (decode → crop → encoder → streaming head → run detector → interpreter) on a Breakfast video on the Jetson with the network off, and record end-to-end latency per step. This needs a video decoder on the device (PyAV or GStreamer) in a virtual environment.
+- The end-to-end run covers one video (104 steps). The step-level match is stronger evidence than the 4 events, but one video is still a small sample.
+- The video is breakfast prep and the recipe is a stir-fry, so the task names are the interpreter's guesses, as designed. No taps or voice input were used, so the planner kept recommending "Press the tofu".
+- **Network:** the run blocked Python network calls and held no sockets, but Wi-Fi stayed on (switching it off needs root). A Wi-Fi-off run: `scripts/jetson_offline_run.sh`.
+- The input is a file, not a camera. A USB camera (InnoMaker U20CAM-1080P, UVC) is the next input; OpenCV reads cameras through the same interface as files.
 
 ## Reproduce
 
@@ -89,4 +145,10 @@ for m in encoder head; do for p in fp32 fp16; do
     --saveEngine=$m.$p.engine --warmUp=2000 --duration=20 --percentile=50,95,99
 done; done
 python3 parity.py check parity s3d_selected      # accuracy vs. the Mac
+
+# End to end (pack: data/edge/e2e/ with video.avi + meta.json; src/kcp and pydantic copied to the Jetson)
+PYTHONPATH=src:pylib python3 -m kcp.edge.e2e run e2e edge/s3d_selected \
+    graphs/tofu_stir_fry.instant_pot.v0.json e2e/out_rt --realtime     # Jetson
+uv run --extra edge python -m kcp.edge.e2e reference data/edge/e2e            # Mac
+uv run python -m kcp.edge.e2e compare data/edge/e2e/out_rt data/edge/e2e/reference
 ```
